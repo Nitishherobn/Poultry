@@ -617,67 +617,18 @@ function renderSelectedProfile() {
     renderMemberProfile(id);
 }
 
-function renderAttention() {
+async function refreshGeminiStatus() {
     const observation = state.observation;
     const ready = finishObservationIfReady();
     if (!ready) state.attention = calculateAttentionRating();
     $('#attention-value').textContent = state.attention;
     const moods = ['A gentle start', 'Finding your way', 'Getting settled', 'Warming up', 'Building focus', 'In the zone', 'Pretty tuned in', 'Really present', 'Deep focus', 'Fully absorbed'];
-    $('#attention-mood').textContent = moods[state.attention - 1] || moods[6];
-    const elapsed = Math.max(0, Math.min(1, (Date.now() - observation.startedAt) / (OBSERVATION_DAYS * DAY_MS || 1)));
-    const progress = OBSERVATION_DAYS === 0 ? 100 : Math.round(elapsed * 100);
-    $('.observation-progress').setAttribute('aria-valuenow', progress);
-    $('#observation-progress-fill').style.width = `${progress}%`;
-    $('#observed-minutes').textContent = Math.floor(observation.focusSeconds / 60);
-    $('#observed-sessions').textContent = observation.completedSessions;
-    $('#observed-tasks').textContent = observation.completedTaskIds.length;
     $('#observed-away').textContent = observation.interruptionCount;
     if (ready && observation.matchedPeer) {
-        $('#observation-status').textContent = 'Observation complete. Your focus profile is ready.';
+            : 'Gemini is not configured on this local server.';
         $('#match-result').textContent = `Demo match: ${observation.matchedPeer.name} · ${observation.matchedPeer.focus}/10 focus · Live matching requires a connected service.`;
         $('#matched-member-link-row').hidden = false;
         $('#matched-member-name-link').textContent = `View ${observation.matchedPeer.name}'s profile`;
-        $('#matched-member-name-link').href = `#profile/${observation.matchedPeer.id}`;
-        $('#matched-buddy-profile-link').href = `#profile/${observation.matchedPeer.id}`;
-        $('#matched-buddy-profile-link').textContent = 'View profile →';
-        $('#open-partner-chat').hidden = false;
-        $('#matched-buddy-summary').textContent = `${observation.matchedPeer.name} · ${observation.matchedPeer.focus}/10 focus · ${observation.matchedPeer.level}`;
-    } else {
-        const remainingMs = Math.max(0, observationDeadline() - Date.now());
-        const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1000));
-        $('#observation-status').textContent = `Learning your rhythm · ${remainingHours}h until matching is available.`;
-        $('#match-result').textContent = 'Your match appears automatically when observation is complete.';
-        $('#matched-member-link-row').hidden = true;
-        $('#open-partner-chat').hidden = true;
-        $('#matched-buddy-summary').textContent = 'Your match appears after observation is complete.';
-        $('#matched-buddy-profile-link').href = '#people';
-        $('#matched-buddy-profile-link').textContent = 'Browse profiles →';
-    }
-    renderPartnerChat();
-}
-
-function renderPartnerChat() {
-    const peer = state.observation.matchedPeer;
-    const available = Boolean(peer && state.observation.matchedAt);
-    $('#partner-chat-label').textContent = available ? 'DEMO PARTNER' : 'MATCH PENDING';
-    $('#partner-avatar-link').textContent = peer?.name?.charAt(0) || '?';
-    $('#partner-name').textContent = available ? peer.name : 'Waiting for your focus match';
-    $('#partner-presence').textContent = available ? `${peer.focus}/10 focus · ${peer.level} · shared study rhythm` : 'Your conversation will appear here when matching is ready.';
-    const profileHref = available ? `#profile/${peer.id}` : '#people';
-    $('#partner-avatar-link').href = profileHref;
-    $('#partner-name-link').href = profileHref;
-    $('#partner-connection-label').textContent = available ? 'Demo match' : 'Not connected';
-    $('.demo-connection').classList.toggle('connected', available);
-    $('#partner-chat-input').disabled = !available;
-    $('#partner-chat-form button').disabled = !available;
-
-    const messages = $('#partner-chat-messages');
-    messages.replaceChildren();
-    if (!available) {
-        const empty = document.createElement('div');
-        empty.className = 'partner-chat-empty';
-        empty.textContent = 'Once your observation period ends, your matched study partner will show up here.';
-        messages.append(empty);
         return;
     }
     if (!state.observation.chatMessages.length) {
@@ -930,67 +881,18 @@ async function apiRequest(path, options = {}) {
     return data;
 }
 
-async function refreshIntegrationStatus() {
+async function refreshGeminiStatus() {
     const label = $('#ai-service-label');
     const note = $('#ai-service-note');
     try {
         const status = await apiRequest('/api/integrations/status');
         label.textContent = status.gemini_configured ? 'GEMINI CONFIGURED' : 'GEMINI SETUP NEEDED';
-        $('#canvas-connection-status').textContent = status.canvas_configured ? 'Feed saved · sync to test' : 'Not connected';
-        $('#gemini-connection-status').textContent = status.gemini_configured ? `Key saved · ${status.gemini_model}` : 'Not connected';
-        $('#disconnect-canvas').hidden = !status.canvas_configured;
-        $('#disconnect-gemini').hidden = !status.gemini_configured;
-        $('#canvas-url-config').hidden = Boolean(status.preview_mode);
-        $('#phone-preview-import-link').hidden = !status.preview_mode;
-        if (status.preview_mode) $('#canvas-connection-status').textContent = 'Phone preview · import an .ics file from Schedule';
-        if (status.gemini_configured) $('#gemini-model-input').value = status.gemini_model;
         note.textContent = status.gemini_configured
             ? `Study questions are sent to Google Gemini (${status.gemini_model}) through the local backend.`
-            : 'Use Connect tools in the top bar to add a Gemini API key and enable AI answers.';
+            : 'Gemini is not configured on this local server.';
     } catch (error) {
         label.textContent = 'SERVER OFFLINE';
         note.textContent = error.message;
-        $('#canvas-connection-status').textContent = 'Daymark server is offline';
-        $('#gemini-connection-status').textContent = 'Daymark server is offline';
-    }
-}
-
-function openIntegrationsDialog() {
-    $('#integrations-modal').hidden = false;
-    $('#integration-feedback').textContent = 'Existing secrets are never sent back to this page.';
-    refreshIntegrationStatus();
-    $('#canvas-feed-input').focus();
-}
-
-function closeIntegrationsDialog() {
-    $('#integrations-modal').hidden = true;
-    $('#canvas-feed-input').value = '';
-    $('#gemini-key-input').value = '';
-    $('#gemini-key-input').type = 'password';
-    $('#toggle-gemini-key').setAttribute('aria-label', 'Show API key');
-}
-
-async function updateIntegrations(payload) {
-    const saveButton = $('#save-integrations');
-    saveButton.disabled = true;
-    $('#integration-feedback').textContent = 'Saving securely on this computer…';
-    try {
-        const status = await apiRequest('/api/integrations/configure', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        await refreshIntegrationStatus();
-        $('#integration-feedback').textContent = 'Saved on this computer. Secret values are not returned to the browser.';
-        if (!status.canvas_configured && !status.gemini_configured) {
-            $('#integration-feedback').textContent = 'No credentials are configured yet. Add a feed URL or API key above.';
-        }
-        return true;
-    } catch (error) {
-        $('#integration-feedback').textContent = error.message;
-        return false;
-    } finally {
-        saveButton.disabled = false;
     }
 }
 
@@ -1007,10 +909,11 @@ function parseCanvasIcs(text) {
             continue;
         }
         if (line === 'END:VEVENT') {
-            if (current && current.start) {
+            if (current && (current.start || current.end || current.due)) {
+                const dateRaw = current.start || current.end || current.due;
                 const summary = current.summary || 'Canvas assignment';
-                const due = `${current.start.slice(0, 4)}-${current.start.slice(4, 6)}-${current.start.slice(6, 8)}`;
-                if (/^\d{4}-\d{2}-\d{2}$/.test(due) && dayDifference(due) >= -14) {
+                const due = `${dateRaw.slice(0, 4)}-${dateRaw.slice(4, 6)}-${dateRaw.slice(6, 8)}`;
+                if (/^\d{4}-\d{2}-\d{2}$/.test(due) && dayDifference(due) >= -30) {
                     const title = summary.replace(/^(assignment|quiz|event|calendar event)\s*:\s*/i, '').trim();
                     const item = { uid: current.uid || `${summary}-${due}`, title: title || summary, due };
                     allEvents.push(item);
@@ -1031,6 +934,8 @@ function parseCanvasIcs(text) {
         if (property === 'SUMMARY') current.summary = decoded;
         else if (property === 'UID') current.uid = decoded;
         else if (property === 'DTSTART') current.start = value.replace(/[^0-9T]/g, '').slice(0, 8);
+        else if (property === 'DTEND') current.end = value.replace(/[^0-9T]/g, '').slice(0, 8);
+        else if (property === 'DUE') current.due = value.replace(/[^0-9T]/g, '').slice(0, 8);
     }
     const result = events.length > 0 ? events : allEvents;
     return result.sort((first, second) => first.due.localeCompare(second.due));
@@ -1058,61 +963,55 @@ function importCanvasEvents(events, note = $('#calendar-note')) {
     }
     saveState();
     renderAll();
-    note.hidden = false;
-    note.textContent = `Canvas import complete: ${imported} assignment${imported === 1 ? '' : 's'} found.`;
-    showToast(`Canvas import complete. ${imported} assignment${imported === 1 ? '' : 's'} imported.`);
+    if (note) {
+        note.hidden = false;
+        note.textContent = `Canvas import complete: ${imported} assignment${imported === 1 ? '' : 's'} found.`;
+    }
+    const focusNote = $('#focus-calendar-note');
+    if (focusNote) {
+        focusNote.hidden = false;
+        focusNote.textContent = `Canvas synced: ${imported} assignment${imported === 1 ? '' : 's'} found.`;
+    }
+    showToast(`Canvas import complete: ${imported} assignment${imported === 1 ? '' : 's'} imported.`);
 }
 
 async function importCanvasFile(file) {
     const note = $('#calendar-note');
-    note.hidden = false;
     if (!file) return;
     if (file.size > 4 * 1024 * 1024) {
-        note.textContent = 'That calendar file is larger than the 4 MB import limit.';
+        if (note) {
+            note.hidden = false;
+            note.textContent = 'That calendar file is larger than the 4 MB import limit.';
+        }
+        showToast('That calendar file is larger than the 4 MB limit.');
         return;
     }
     if (!file.name.toLowerCase().endsWith('.ics') && file.type !== 'text/calendar' && file.type !== 'application/ics') {
-        note.textContent = 'Choose a Canvas calendar file ending in .ics.';
+        if (note) {
+            note.hidden = false;
+            note.textContent = 'Choose a Canvas calendar file ending in .ics.';
+        }
+        showToast('Please select a file ending in .ics');
         return;
     }
     try {
-        const events = parseCanvasIcs(await file.text());
+        const text = await file.text();
+        const events = parseCanvasIcs(text);
         if (!events.length) {
-            note.textContent = 'No upcoming assignment events were found in that calendar file.';
+            if (note) {
+                note.hidden = false;
+                note.textContent = 'No upcoming assignment events were found in that calendar file.';
+            }
+            showToast('No upcoming assignments found in calendar file.');
             return;
         }
         importCanvasEvents(events, note);
     } catch {
-        note.textContent = 'Could not read that calendar file. Download the Canvas feed again and retry.';
-    }
-}
-
-async function syncCanvasAssignments() {
-    const button = $('#calendar-connect');
-    const note = $('#calendar-note');
-    button.disabled = true;
-    note.hidden = false;
-    note.textContent = 'Checking Canvas connection…';
-    try {
-        const status = await apiRequest('/api/integrations/status');
-        if (status.preview_mode) {
-            note.textContent = 'Phone preview: use Import Canvas .ics to pick a calendar file from your phone.';
-            $('#schedule-view').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            return;
+        if (note) {
+            note.hidden = false;
+            note.textContent = 'Could not read that calendar file. Download the Canvas feed again and retry.';
         }
-        if (!status.canvas_configured) {
-            note.textContent = 'Canvas is not connected yet. Use the setup guide to add your calendar feed.';
-            openIntegrationsDialog();
-            return;
-        }
-        note.textContent = 'Importing Canvas assignments…';
-        const result = await apiRequest('/api/canvas/events');
-        importCanvasEvents(result.events, note);
-        note.textContent = `Canvas synced: ${result.count} assignment${result.count === 1 ? '' : 's'} found.`;
-    } catch (error) {
-        note.textContent = error.message;
-    } finally {
-        button.disabled = false;
+        showToast('Could not read calendar file. Try downloading again.');
     }
 }
 
@@ -1137,59 +1036,10 @@ $('#onboarding-form').addEventListener('submit', (event) => {
 
 $('#add-task').addEventListener('click', addTask);
 $('#focus-add-task').addEventListener('click', addTask);
-$('#calendar-connect').addEventListener('click', syncCanvasAssignments);
 $('#import-canvas-file-button').addEventListener('click', () => $('#canvas-ics-file').click());
 $('#canvas-ics-file').addEventListener('change', async (event) => {
     await importCanvasFile(event.target.files?.[0]);
     event.target.value = '';
-});
-$('#open-integrations').addEventListener('click', openIntegrationsDialog);
-$('#close-integrations').addEventListener('click', closeIntegrationsDialog);
-$('#integrations-modal').addEventListener('click', (event) => {
-    if (event.target === $('#integrations-modal')) closeIntegrationsDialog();
-});
-document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && !$('#integrations-modal').hidden) closeIntegrationsDialog();
-});
-$('#toggle-gemini-key').addEventListener('click', () => {
-    const input = $('#gemini-key-input');
-    const showing = input.type === 'password';
-    input.type = showing ? 'text' : 'password';
-    $('#toggle-gemini-key').setAttribute('aria-label', showing ? 'Hide API key' : 'Show API key');
-});
-$('#save-integrations').addEventListener('click', () => {
-    const payload = { gemini_model: $('#gemini-model-input').value.trim() };
-    let canvasUrl = $('#canvas-feed-input').value.trim();
-    const apiKey = $('#gemini-key-input').value.trim();
-
-    if (canvasUrl && (canvasUrl.includes('BEGIN:VCALENDAR') || canvasUrl.includes('BEGIN:VEVENT'))) {
-        const events = parseCanvasIcs(canvasUrl);
-        if (events.length > 0) {
-            importCanvasEvents(events);
-            $('#integration-feedback').textContent = `Success! Imported ${events.length} assignments directly from your pasted .ics calendar.`;
-            $('#canvas-feed-input').value = '';
-            showToast(`Imported ${events.length} assignments from Canvas calendar.`);
-            return;
-        } else {
-            $('#integration-feedback').textContent = 'No upcoming assignments found in the pasted .ics text.';
-            return;
-        }
-    }
-
-    if (canvasUrl) {
-        canvasUrl = canvasUrl.replace(/^webcal:\/\//i, 'https://');
-        payload.canvas_ics_url = canvasUrl;
-    }
-    if (apiKey) payload.gemini_api_key = apiKey;
-
-    updateIntegrations(payload).then((saved) => {
-        if (!saved) return;
-        $('#canvas-feed-input').value = '';
-        $('#gemini-key-input').value = '';
-        if (canvasUrl) {
-            syncCanvasAssignments();
-        }
-    });
 });
 
 function openPasteModal() {
@@ -1225,41 +1075,54 @@ async function handlePasteImport() {
     }
 
     let url = raw.replace(/^webcal:\/\//i, 'https://');
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        feedback.textContent = 'Please enter a valid https:// URL or paste .ics calendar text.';
+    if (!url.startsWith('https://') && !url.startsWith('http://')) {
+        feedback.textContent = 'Please paste a valid Canvas calendar link (https://...) or raw .ics text.';
         return;
     }
 
     feedback.textContent = 'Fetching Canvas calendar…';
     try {
-        const result = await apiRequest('/api/canvas/fetch-url', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url })
-        }).catch(() => null);
+        let imported = false;
+        try {
+            const result = await apiRequest('/api/canvas/fetch-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+            if (result && result.events && result.events.length > 0) {
+                importCanvasEvents(result.events);
+                closePasteModal();
+                showToast(`Imported ${result.events.length} assignments from Canvas!`);
+                imported = true;
+                return;
+            }
+        } catch {
+            // Local backend not reachable or running on static hosting (GitHub Pages)
+        }
 
-        if (result && result.events && result.events.length > 0) {
-            importCanvasEvents(result.events);
+        if (imported) return;
+
+        let directEvents = null;
+        try {
+            const response = await fetch(url);
+            if (response.ok) {
+                const text = await response.text();
+                directEvents = parseCanvasIcs(text);
+            }
+        } catch {
+            // Canvas blocked by browser CORS policy
+        }
+
+        if (directEvents && directEvents.length > 0) {
+            importCanvasEvents(directEvents);
             closePasteModal();
-            showToast(`Imported ${result.events.length} assignments from Canvas!`);
+            showToast(`Imported ${directEvents.length} assignments from Canvas!`);
             return;
         }
 
-        const response = await fetch(url).catch(() => null);
-        if (response && response.ok) {
-            const text = await response.text();
-            const events = parseCanvasIcs(text);
-            if (events.length > 0) {
-                importCanvasEvents(events);
-                closePasteModal();
-                showToast(`Imported ${events.length} assignments from Canvas!`);
-                return;
-            }
-        }
-
-        feedback.textContent = 'Canvas blocked direct browser download due to CORS. Download the .ics file in your browser, then tap "Import .ics file" to pick it, or open it and paste the text above!';
-    } catch (err) {
-        feedback.textContent = err.message || 'Import failed. Check the URL and try again.';
+        feedback.textContent = 'Canvas blocked direct browser download due to CORS security. Follow the tutorial above: download the .ics file on your phone, then tap "↑ Choose .ics file" below!';
+    } catch {
+        feedback.textContent = 'Canvas download blocked by browser security. Please download the .ics file on your phone and tap "Choose .ics file".';
     }
 }
 
@@ -1281,8 +1144,10 @@ $('#paste-clipboard-button')?.addEventListener('click', async () => {
         $('#paste-calendar-input').focus();
     }
 });
-$('#disconnect-canvas').addEventListener('click', () => updateIntegrations({ clear_canvas: true }));
-$('#disconnect-gemini').addEventListener('click', () => updateIntegrations({ clear_gemini: true }));
+$('#paste-file-picker-button')?.addEventListener('click', () => {
+    closePasteModal();
+    $('#canvas-ics-file').click();
+});
 $('#timer-toggle').addEventListener('click', startTimer);
 $('#timer-reset').addEventListener('click', resetTimer);
 document.querySelectorAll('.preset').forEach((button) => button.addEventListener('click', () => choosePreset(button)));
@@ -1449,7 +1314,7 @@ function initialize() {
         finishObservationIfReady();
         renderAttention();
     }, observationDelay);
-    refreshIntegrationStatus();
+    refreshGeminiStatus();
 }
 
 initialize();

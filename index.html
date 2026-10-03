@@ -6,9 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#ffffff">
     <title>Daymark — make room for focus</title>
-    <link rel="stylesheet" href="app.css?v=v5">
-    <link rel="stylesheet" href="app-details.css?v=v5">
-    <script src="app.js?v=v5" defer></script>
+    <link rel="stylesheet" href="app.css?v=v6">
+    <link rel="stylesheet" href="app-details.css?v=v6">
+    <script src="app.js?v=v6" defer></script>
 </head>
 
 <body>
@@ -37,8 +37,7 @@
         <main id="today" class="main-content">
             <header class="topbar">
                 <div class="breadcrumb">MONDAY, OCTOBER 5 <span class="top-dot">·</span> YOUR STUDY SPACE</div>
-                <div class="top-actions"><span class="mode-pill" id="mode-indicator"><i></i> Casual mode</span><button
-                        class="text-button integrations-open" id="open-integrations">Connect tools</button><a
+                <div class="top-actions"><span class="mode-pill" id="mode-indicator"><i></i> Casual mode</span><a
                         class="avatar top-avatar" id="top-profile" href="#profile" aria-label="Open profile"
                         title="My profile">S</a><button class="icon-button" id="top-settings" aria-label="Open settings"
                         title="Settings">⚙</button>
@@ -122,16 +121,33 @@
                             <h2>Assignments & due dates</h2>
                         </div>
                         <div class="schedule-actions"><button class="text-button" id="import-canvas-file-button"
-                                type="button">↑ Import .ics file</button><button class="text-button"
-                                id="paste-canvas-button" type="button">📋 Paste .ics / link</button><button
-                                class="text-button" id="calendar-connect">↻ Sync Canvas</button><input
+                            type="button">↑ Import .ics file</button><button class="text-button"
+                            id="paste-canvas-button" type="button">📋 Paste .ics link</button><input
                                 id="canvas-ics-file" type="file" accept=".ics,text/calendar,application/ics" hidden>
                         </div>
                     </div>
                     <div class="calendar-note" id="calendar-note" hidden aria-live="polite"></div>
-                    <p class="phone-import-note">On your phone: open the Canvas Calendar Feed link in Safari or Chrome,
-                        save/download the <code>.ics</code> file, then choose <strong>Import Canvas .ics</strong> and
-                        pick it from Files or Downloads.</p>
+                    <div class="canvas-tutorial-card" id="canvas-import-guide">
+                        <div class="canvas-tutorial-header">
+                            <span class="canvas-tutorial-badge">MOBILE GUIDE</span>
+                            <h3>How to download your Canvas .ics on iPhone & Android</h3>
+                        </div>
+                        <ol class="canvas-tutorial-steps">
+                            <li><strong>Open Canvas in your phone's browser:</strong> Open Safari (iPhone) or Chrome (Android), log in to Canvas, and tap <strong>Calendar</strong>.</li>
+                            <li><strong>Find Calendar Feed:</strong> Scroll to the bottom and tap <strong>Calendar Feed</strong>.<br>
+                                <span class="canvas-tutorial-tip">💡 Tip: If not visible on mobile, request desktop site: Safari tap <strong>aA → Desktop Website</strong>; Chrome tap <strong>⋮ → Desktop site</strong>.</span>
+                            </li>
+                            <li><strong>Download .ics file or copy link:</strong><br>
+                                • <strong>iPhone (Safari):</strong> Tap feed link → tap <strong>Download</strong> or <strong>Share → Save to Files</strong>.<br>
+                                • <strong>Android (Chrome):</strong> Tap feed link to save <code>.ics</code> to Downloads.<br>
+                                • <em>Or tap and hold link to <strong>Copy Link</strong>.</em>
+                            </li>
+                            <li><strong>Import into Daymark:</strong><br>
+                                • Tap <strong>↑ Import .ics file</strong> to select the downloaded file, OR<br>
+                                • Tap <strong>📋 Paste .ics link</strong> to paste the link or calendar text!
+                            </li>
+                        </ol>
+                    </div>
                     <div class="task-list" id="task-list" aria-live="polite"></div>
                     <details class="more-tasks" id="more-tasks" hidden>
                         <summary id="more-tasks-label">Other work</summary>
@@ -353,87 +369,6 @@
         </main>
     </div>
 
-    <div class="modal-backdrop" id="integrations-modal" role="dialog" aria-modal="true"
-        aria-labelledby="integrations-title" hidden>
-        <section class="integration-panel">
-            <header class="integration-header">
-                <div>
-                    <p class="eyebrow">PRIVATE CONNECTIONS</p>
-                    <h1 id="integrations-title">Connect your study tools</h1>
-                </div><button class="icon-button" id="close-integrations" type="button" aria-label="Close integrations"
-                    title="Close">×</button>
-            </header>
-            <p class="integration-intro">Follow the quick steps, then paste your credentials below. They are saved on
-                this computer in the ignored <code>.env</code> file, not in browser storage.</p>
-            <div class="integration-guides">
-                <article class="integration-guide">
-                    <div class="guide-heading"><span class="guide-icon">▦</span>
-                        <div>
-                            <h2>Canvas assignments</h2>
-                            <p id="canvas-connection-status">Checking connection…</p>
-                        </div>
-                    </div>
-                    <p class="phone-guide-note">Do this on your phone. The Canvas Student app may not show the private
-                        Calendar Feed link, so use your phone's browser for these steps.</p>
-                    <ol>
-                        <li>Open <strong>Safari</strong> on iPhone or <strong>Chrome</strong> on Android, sign in to
-                            your school's Canvas site, and open <strong>Calendar</strong>.</li>
-                        <li>If the feed option is missing, request the desktop site: in iPhone Safari tap <strong>aA →
-                                Request Desktop Website</strong>; in Android Chrome tap <strong>⋮ → Desktop
-                                site</strong>.</li>
-                        <li>Tap <strong>Calendar Feed</strong>. If Canvas opens the feed, save/download the
-                            <code>.ics</code> file: use <strong>Share → Save to Files</strong> on iPhone or
-                            <strong>Download</strong> on Android.
-                        </li>
-                        <li>Return to Daymark and open <strong>Schedule → Import Canvas .ics</strong>. Pick the file
-                            from Files or Downloads. The calendar is parsed on your phone.</li>
-                    </ol>
-                    <div id="canvas-url-config"><label class="integration-label" for="canvas-feed-input">Canvas calendar
-                            feed URL (local computer setup)</label>
-                        <input class="integration-input" id="canvas-feed-input" type="url" inputmode="url"
-                            autocomplete="off" placeholder="https://canvas.yourschool.edu/feeds/calendars/…">
-                        <button class="integration-clear" id="disconnect-canvas" type="button" hidden>Disconnect
-                            Canvas</button>
-                    </div>
-                    <p class="phone-preview-import-link" id="phone-preview-import-link" hidden>This phone preview does
-                        not send private feed URLs over Wi-Fi. <a href="#schedule">Go to Schedule to import your
-                            downloaded .ics file →</a></p>
-                </article>
-                <article class="integration-guide">
-                    <div class="guide-heading"><span class="guide-icon gemini-icon">✳</span>
-                        <div>
-                            <h2>Gemini study assistant</h2>
-                            <p id="gemini-connection-status">Checking connection…</p>
-                        </div>
-                    </div>
-                    <ol>
-                        <li><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">Open
-                                Google AI Studio</a> and create an API key.</li>
-                        <li>Paste the key below. Your study questions and current task titles will be sent to Google for
-                            answers.</li>
-                        <li>Leave the model as <code>gemini-2.5-flash</code> unless you want to use another supported
-                            model.</li>
-                    </ol>
-                    <label class="integration-label" for="gemini-key-input">Gemini API key</label>
-                    <div class="secret-input-row"><input class="integration-input" id="gemini-key-input" type="password"
-                            autocomplete="new-password" placeholder="Paste API key; existing key is never shown"><button
-                            id="toggle-gemini-key" class="icon-button" type="button" aria-label="Show API key"
-                            title="Show API key">◉</button></div>
-                    <label class="integration-label model-label" for="gemini-model-input">Model</label>
-                    <input class="integration-input" id="gemini-model-input" value="gemini-2.5-flash" maxlength="80"
-                        autocomplete="off">
-                    <button class="integration-clear" id="disconnect-gemini" type="button" hidden>Remove Gemini
-                        key</button>
-                </article>
-            </div>
-            <div class="integration-footer">
-                <p id="integration-feedback" role="status" aria-live="polite">Existing secrets are never sent back to
-                    this page.</p><button class="primary-button" id="save-integrations" type="button">Save
-                    connections</button>
-            </div>
-        </section>
-    </div>
-
     <div class="modal-backdrop" id="paste-modal" role="dialog" aria-modal="true" aria-labelledby="paste-modal-title"
         hidden>
         <section class="integration-panel" style="width: min(100%, 420px);">
@@ -446,14 +381,26 @@
                 <button class="icon-button" id="close-paste-modal" type="button" aria-label="Close"
                     title="Close">×</button>
             </header>
-            <p class="integration-intro">Paste your Canvas Calendar Feed URL (<code>https://...</code>) or paste the raw
-                <code>.ics</code> calendar file text:</p>
+            <div class="canvas-tutorial-card" style="margin: 10px 0 12px;">
+                <div class="canvas-tutorial-header">
+                    <span class="canvas-tutorial-badge">MOBILE TUTORIAL</span>
+                    <h3>How to get your Canvas link or file on your phone:</h3>
+                </div>
+                <ol class="canvas-tutorial-steps">
+                    <li>Open <strong>Canvas → Calendar</strong> in Safari or Chrome on your phone.</li>
+                    <li>Scroll down and tap <strong>Calendar Feed</strong> at the bottom <em>(request Desktop site if not visible)</em>.</li>
+                    <li><strong>Copy the link</strong> (or download the <code>.ics</code> file and copy all its text).</li>
+                    <li>Paste below and tap <strong>Import assignments</strong>!</li>
+                </ol>
+            </div>
+            <p class="integration-intro" style="margin: 6px 0 8px;">Paste a Canvas Calendar Feed URL or raw <code>.ics</code> text:</p>
             <textarea id="paste-calendar-input" class="integration-input"
-                style="height: 120px; padding: 10px; font-family: Consolas, monospace; font-size: 10px; line-height: 1.4; resize: vertical;"
-                placeholder="Paste https://canvas.../calendar.ics OR paste text starting with BEGIN:VCALENDAR..."></textarea>
+                style="height: 110px; padding: 10px; font-family: Consolas, monospace; font-size: 10px; line-height: 1.4; resize: vertical;"
+                placeholder="Paste https://canvas.../calendar.ics OR text starting BEGIN:VCALENDAR..."></textarea>
             <p class="prototype-note" id="paste-feedback"
                 style="margin-top: 8px; color: var(--orange-dark); font-weight: 600;"></p>
-            <div style="display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; align-items: center;">
+            <div style="display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
+                <button class="outline-button" id="paste-file-picker-button" type="button" style="width:auto;padding:0 10px;">↑ Choose .ics file</button>
                 <button class="outline-button" id="paste-clipboard-button" type="button"
                     style="width: auto; padding: 0 10px;">📋 Paste clipboard</button>
                 <button class="primary-button" id="paste-submit-button" type="button" style="padding: 0 14px;">Import

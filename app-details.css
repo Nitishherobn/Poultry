@@ -151,3 +151,20 @@
 .integration-footer{display:flex;align-items:flex-start;flex-direction:column;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid #eae5df}
 .integration-footer p{margin:0;color:#7d756d;font-size:8px;line-height:1.45}
 .integration-footer .primary-button{width:100%;white-space:nowrap}
+.canvas-tutorial-card{margin:10px 0 14px;padding:12px 14px;border:1px solid #fed7aa;border-radius:8px;background:#fffaf5;font-size:9px;color:#7c2d12}
+.canvas-tutorial-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.canvas-tutorial-badge{display:inline-block;padding:2px 6px;border-radius:3px;background:#ffedd5;color:var(--orange-dark);font-size:8px;font-weight:700;letter-spacing:.5px}
+.canvas-tutorial-card h3{margin:0;font-family:Manrope,sans-serif;font-size:11px;font-weight:700;color:#431407}
+.canvas-tutorial-steps{margin:0;padding-left:16px;line-height:1.55}
+.canvas-tutorial-steps li+li{margin-top:6px}
+.canvas-tutorial-tip{display:block;margin-top:3px;padding:4px 6px;border-radius:4px;background:#ffeedb;color:#9a3412;font-size:8px}
+.canvas-tutorial-card code{padding:2px 4px;border-radius:3px;background:#ffedd5;color:#431407;font-family:Consolas,monospace}
+.canvas-tutorial-details{margin:8px 0 12px;border:1px solid #fed7aa;border-radius:6px;background:#fffaf5;font-size:9px;color:#7c2d12;overflow:hidden}
+.canvas-tutorial-details summary{padding:9px 12px;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:space-between;color:var(--orange-dark);list-style:none}
+.canvas-tutorial-details summary::-webkit-details-marker{display:none}
+.canvas-tutorial-details summary::after{content:'▾';font-size:12px;transition:transform .2s}
+.canvas-tutorial-details[open] summary::after{transform:rotate(180deg)}
+.canvas-tutorial-content{padding:0 12px 10px;line-height:1.55}
+.canvas-tutorial-content ol{margin:4px 0 0;padding-left:16px}
+.canvas-tutorial-content li+li{margin-top:5px}
+.canvas-tutorial-content code{padding:2px 4px;border-radius:3px;background:#ffedd5;color:#431407;font-family:Consolas,monospace}
