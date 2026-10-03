@@ -48,7 +48,7 @@
 .matched-member-link-row{margin:5px 0 0;font-size:9px;font-weight:700}
 .matched-member-link-row[hidden]{display:none}
 .matched-member-link-row a{color:var(--orange-dark);text-decoration:underline;text-underline-offset:2px}
-.app-view[hidden]{display:none}
+.app-view[hidden]{display:none!important}
 .app-view:not([hidden]){animation:rise .22s both}
 .view-heading{margin:20px 0 16px}
 .view-heading h1{margin:0;font-family:Manrope,'Trebuchet MS',sans-serif;font-size:22px;line-height:1.2}

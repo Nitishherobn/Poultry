@@ -58,7 +58,7 @@ function makeStarterTasks() {
 
 function initialState() {
     return {
-        onboarded: false,
+        onboarded: true,
         name: 'Sam',
         studyLevel: 'Undergraduate',
         interests: [],
@@ -617,18 +617,67 @@ function renderSelectedProfile() {
     renderMemberProfile(id);
 }
 
-async function refreshGeminiStatus() {
+function renderAttention() {
     const observation = state.observation;
     const ready = finishObservationIfReady();
     if (!ready) state.attention = calculateAttentionRating();
     $('#attention-value').textContent = state.attention;
     const moods = ['A gentle start', 'Finding your way', 'Getting settled', 'Warming up', 'Building focus', 'In the zone', 'Pretty tuned in', 'Really present', 'Deep focus', 'Fully absorbed'];
+    $('#attention-mood').textContent = moods[state.attention - 1] || moods[6];
+    const elapsed = Math.max(0, Math.min(1, (Date.now() - observation.startedAt) / (OBSERVATION_DAYS * DAY_MS || 1)));
+    const progress = OBSERVATION_DAYS === 0 ? 100 : Math.round(elapsed * 100);
+    $('.observation-progress').setAttribute('aria-valuenow', progress);
+    $('#observation-progress-fill').style.width = `${progress}%`;
+    $('#observed-minutes').textContent = Math.floor(observation.focusSeconds / 60);
+    $('#observed-sessions').textContent = observation.completedSessions;
+    $('#observed-tasks').textContent = observation.completedTaskIds.length;
     $('#observed-away').textContent = observation.interruptionCount;
     if (ready && observation.matchedPeer) {
-            : 'Gemini is not configured on this local server.';
+        $('#observation-status').textContent = 'Observation complete. Your focus profile is ready.';
         $('#match-result').textContent = `Demo match: ${observation.matchedPeer.name} · ${observation.matchedPeer.focus}/10 focus · Live matching requires a connected service.`;
         $('#matched-member-link-row').hidden = false;
         $('#matched-member-name-link').textContent = `View ${observation.matchedPeer.name}'s profile`;
+        $('#matched-member-name-link').href = `#profile/${observation.matchedPeer.id}`;
+        $('#matched-buddy-profile-link').href = `#profile/${observation.matchedPeer.id}`;
+        $('#matched-buddy-profile-link').textContent = 'View profile →';
+        $('#open-partner-chat').hidden = false;
+        $('#matched-buddy-summary').textContent = `${observation.matchedPeer.name} · ${observation.matchedPeer.focus}/10 focus · ${observation.matchedPeer.level}`;
+    } else {
+        const remainingMs = Math.max(0, observationDeadline() - Date.now());
+        const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1000));
+        $('#observation-status').textContent = `Learning your rhythm · ${remainingHours}h until matching is available.`;
+        $('#match-result').textContent = 'Your match appears automatically when observation is complete.';
+        $('#matched-member-link-row').hidden = true;
+        $('#open-partner-chat').hidden = true;
+        $('#matched-buddy-summary').textContent = 'Your match appears after observation is complete.';
+        $('#matched-buddy-profile-link').href = '#people';
+        $('#matched-buddy-profile-link').textContent = 'Browse profiles →';
+    }
+    renderPartnerChat();
+}
+
+function renderPartnerChat() {
+    const peer = state.observation.matchedPeer;
+    const available = Boolean(peer && state.observation.matchedAt);
+    $('#partner-chat-label').textContent = available ? 'DEMO PARTNER' : 'MATCH PENDING';
+    $('#partner-avatar-link').textContent = peer?.name?.charAt(0) || '?';
+    $('#partner-name').textContent = available ? peer.name : 'Waiting for your focus match';
+    $('#partner-presence').textContent = available ? `${peer.focus}/10 focus · ${peer.level} · shared study rhythm` : 'Your conversation will appear here when matching is ready.';
+    const profileHref = available ? `#profile/${peer.id}` : '#people';
+    $('#partner-avatar-link').href = profileHref;
+    $('#partner-name-link').href = profileHref;
+    $('#partner-connection-label').textContent = available ? 'Demo match' : 'Not connected';
+    $('.demo-connection').classList.toggle('connected', available);
+    $('#partner-chat-input').disabled = !available;
+    $('#partner-chat-form button').disabled = !available;
+
+    const messages = $('#partner-chat-messages');
+    messages.replaceChildren();
+    if (!available) {
+        const empty = document.createElement('div');
+        empty.className = 'partner-chat-empty';
+        empty.textContent = 'Once your observation period ends, your matched study partner will show up here.';
+        messages.append(empty);
         return;
     }
     if (!state.observation.chatMessages.length) {
@@ -1033,6 +1082,18 @@ $('#onboarding-form').addEventListener('submit', (event) => {
     renderAll();
     showToast(state.mode === 'locked' ? 'Your plan is ready. Locked In rewards are on.' : 'Your plan is ready. Take it one step at a time.');
 });
+$('#close-onboarding')?.addEventListener('click', () => {
+    state.onboarded = true;
+    saveState();
+    $('#onboarding').hidden = true;
+});
+$('#onboarding')?.addEventListener('click', (event) => {
+    if (event.target === $('#onboarding')) {
+        state.onboarded = true;
+        saveState();
+        $('#onboarding').hidden = true;
+    }
+});
 
 $('#add-task').addEventListener('click', addTask);
 $('#focus-add-task').addEventListener('click', addTask);
@@ -1229,6 +1290,7 @@ function setActiveView(view) {
     $('.breadcrumb').innerHTML = `${today}<span class="top-dot"> · </span>${viewLabels[activeView]}`;
     if (activeView === 'people') renderLeaderboard();
     if (activeView === 'profile') renderSelectedProfile();
+    window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
 function viewFromHash() {
@@ -1243,9 +1305,28 @@ function viewFromHash() {
 }
 
 document.querySelectorAll('.nav-link').forEach((link) => {
-    link.addEventListener('click', () => setActiveView(link.dataset.view));
+    link.addEventListener('click', (event) => {
+        event.preventDefault();
+        const view = link.dataset.view;
+        window.location.hash = `#${view}`;
+        setActiveView(view);
+    });
 });
 window.addEventListener('hashchange', () => setActiveView(viewFromHash()));
+
+document.addEventListener('click', (event) => {
+    const link = event.target.closest('a[href^="#"]');
+    if (!link || link.classList.contains('nav-link')) return;
+    const href = link.getAttribute('href');
+    if (!href || href === '#') return;
+    const targetRoute = href.slice(1);
+    const viewName = targetRoute.split('/')[0];
+    if (['focus', 'schedule', 'study', 'people', 'chat', 'profile', 'rewards'].includes(viewName)) {
+        event.preventDefault();
+        window.location.hash = href;
+        setActiveView(viewFromHash());
+    }
+});
 
 $('#people-search').addEventListener('input', renderLeaderboard);
 $('#leaderboard-sort').addEventListener('change', renderLeaderboard);
@@ -1300,8 +1381,7 @@ function initialize() {
     });
     if (state.timerKind === 'break' && state.timerRemaining === 0) state.timerKind = 'work';
     if (state.unlockedUntil && state.unlockedUntil <= Date.now()) state.unlockedUntil = 0;
-    if (!state.onboarded) openOnboarding(1);
-    else if (state.unlockedUntil > Date.now()) {
+    if (state.unlockedUntil > Date.now()) {
         setTimeout(() => {
             state.unlockedUntil = 0;
             saveState();

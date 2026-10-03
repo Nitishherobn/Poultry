@@ -6,9 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#ffffff">
     <title>Daymark — make room for focus</title>
-    <link rel="stylesheet" href="app.css?v=v6">
-    <link rel="stylesheet" href="app-details.css?v=v6">
-    <script src="app.js?v=v6" defer></script>
+    <link rel="stylesheet" href="app.css?v=v7">
+    <link rel="stylesheet" href="app-details.css?v=v7">
+    <script src="app.js?v=v7" defer></script>
 </head>
 
 <body>
@@ -411,7 +411,9 @@
 
     <div class="modal-backdrop" id="onboarding" role="dialog" aria-modal="true" aria-labelledby="onboarding-title"
         hidden>
-        <div class="onboarding-panel">
+        <div class="onboarding-panel" style="position: relative;">
+            <button class="icon-button" id="close-onboarding" type="button" aria-label="Close onboarding"
+                title="Close" style="position: absolute; top: 14px; right: 14px; font-size: 16px;">×</button>
             <div class="onboarding-brand"><span class="brand-mark">d.</span><span>daymark</span><span class="step-count"
                     id="step-count">01 / 02</span></div>
             <div class="onboarding-progress"><span id="onboarding-progress"></span></div>
