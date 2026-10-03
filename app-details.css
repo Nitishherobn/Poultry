@@ -168,3 +168,54 @@
 .canvas-tutorial-content ol{margin:4px 0 0;padding-left:16px}
 .canvas-tutorial-content li+li{margin-top:5px}
 .canvas-tutorial-content code{padding:2px 4px;border-radius:3px;background:#ffedd5;color:#431407;font-family:Consolas,monospace}
+
+/* 1-by-1 Focus Card */
+.single-focus-container{margin:10px 0 14px}
+.single-task-card{background:#ffffff;border:1.5px solid var(--orange-border);border-radius:10px;padding:15px;box-shadow:0 4px 18px rgba(234,88,12,.06);position:relative;overflow:hidden;animation:rise .25s ease-out}
+.single-task-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3.5px}
+.single-task-card.priority-high::before{background:linear-gradient(90deg, #dc2626, #ea580c)}
+.single-task-card.priority-medium::before{background:linear-gradient(90deg, #f59e0b, #fbbf24)}
+.single-task-card.priority-low::before{background:linear-gradient(90deg, #10b981, #34d399)}
+.single-task-topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
+.single-task-step{font-size:8px;font-weight:700;letter-spacing:.8px;color:#8c827a;text-transform:uppercase}
+.priority-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:4px;font-size:8px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+.priority-tag.priority-high{background:#fff1ed;color:#c2410c;border:1px solid #fed7aa}
+.priority-tag.priority-medium{background:#fffbeb;color:#b45309;border:1px solid #fde68a}
+.priority-tag.priority-low{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0}
+.single-task-main{margin:6px 0 13px}
+.single-task-title{margin:0 0 6px;font-family:Manrope,sans-serif;font-size:15px;font-weight:800;color:var(--ink);line-height:1.35}
+.single-task-meta{display:flex;align-items:center;gap:6px;color:#78716c;font-size:9.5px;flex-wrap:wrap}
+.single-task-meta span+span::before{content:'·';margin-right:6px;color:#d6d3d1}
+.single-task-actions{display:flex;align-items:center;gap:8px;padding-top:12px;border-top:1px solid #f6f2ec;flex-wrap:wrap}
+.single-task-complete-btn{flex:1;min-width:140px;height:38px;border-radius:6px;background:var(--orange);color:#ffffff;border:0;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .18s,transform .1s;cursor:pointer}
+.single-task-complete-btn:hover{background:var(--orange-dark)}
+.single-task-complete-btn:active{transform:scale(.98)}
+.single-task-skip-btn{height:38px;padding:0 12px;border-radius:6px;background:#fffaf5;color:var(--orange-dark);border:1px solid #fed7aa;font-size:9px;font-weight:600;cursor:pointer;transition:background .15s}
+.single-task-skip-btn:hover{background:#ffeedb}
+.single-task-empty{padding:22px 14px;text-align:center;background:#ffffff;border:1.5px dashed #fed7aa;border-radius:10px;animation:rise .25s ease-out}
+.single-task-empty .empty-icon{font-size:24px;color:var(--orange);display:block;margin-bottom:6px}
+.single-task-empty h3{margin:0 0 4px;font-family:Manrope,sans-serif;font-size:13px;color:var(--ink);font-weight:700}
+.single-task-empty p{margin:0 0 12px;font-size:9.5px;color:#78716c}
+
+/* Priority choice in Add Task modal */
+.priority-choice-row{display:flex;gap:6px;margin-top:4px}
+.priority-chip{flex:1;position:relative;cursor:pointer}
+.priority-chip input{position:absolute;opacity:0;pointer-events:none}
+.priority-chip-span{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:7px 4px;border:1px solid #eae5df;border-radius:6px;background:#ffffff;font-size:8.5px;font-weight:600;color:#57504a;transition:all .15s;min-height:48px}
+.priority-chip-span small{font-size:7px;color:#8c827a;font-weight:400;margin-top:2px}
+.priority-chip input:checked+.priority-chip-span{border-color:var(--orange);background:#fff7ed;color:var(--orange-dark);font-weight:700}
+.priority-chip-high input:checked+.priority-chip-span{border-color:#f97316;background:#fff4ed;color:#c2410c}
+.priority-chip-med input:checked+.priority-chip-span{border-color:#f59e0b;background:#fffbeb;color:#b45309}
+.priority-chip-low input:checked+.priority-chip-span{border-color:#10b981;background:#f0fdf4;color:#15803d}
+
+/* Task badges in rows */
+.task-badge.priority-high{background:#fff1ed;color:#c2410c;border:1px solid #fed7aa;font-weight:700}
+.task-badge.priority-medium{background:#fffbeb;color:#b45309;border:1px solid #fde68a;font-weight:700}
+.task-badge.priority-low{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;font-weight:700}
+
+/* Schedule Priority Grouping */
+.schedule-group{margin-bottom:16px}
+.schedule-group-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:0 2px}
+.schedule-group-title{display:flex;align-items:center;gap:6px;font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#57504a}
+.schedule-group-count{padding:1px 6px;border-radius:10px;background:#f3eee8;color:#78716c;font-size:8px;font-weight:700}
+.queue-summary-pill{display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:#fffaf5;border:1px solid #fed7aa;border-radius:6px;font-size:9px;color:var(--orange-dark);margin:10px 0 8px;font-weight:600}

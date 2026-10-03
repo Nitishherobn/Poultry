@@ -6,9 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#ffffff">
     <title>Daymark — make room for focus</title>
-    <link rel="stylesheet" href="app.css?v=v7">
-    <link rel="stylesheet" href="app-details.css?v=v7">
-    <script src="app.js?v=v7" defer></script>
+    <link rel="stylesheet" href="app.css?v=v8">
+    <link rel="stylesheet" href="app-details.css?v=v8">
+    <script src="app.js?v=v8" defer></script>
 </head>
 
 <body>
@@ -94,17 +94,17 @@
                 <section class="section-block focus-assignments">
                     <div class="section-heading">
                         <div>
-                            <p class="eyebrow">WHEN YOU'RE READY</p>
-                            <h2>Today's assignments</h2>
+                            <p class="eyebrow">ONE STEP AT A TIME</p>
+                            <h2>Current activity</h2>
                         </div><a class="text-button" href="#schedule">Full schedule →</a>
                     </div>
                     <div class="calendar-note" id="focus-calendar-note" hidden aria-live="polite"></div>
-                    <div class="task-list" id="focus-task-list" aria-live="polite"></div>
-                    <details class="more-tasks" id="focus-more-tasks" hidden>
-                        <summary id="focus-more-tasks-label">Other work</summary>
-                        <div class="task-list" id="focus-later-task-list" aria-live="polite"></div>
+                    <div id="single-focus-view" class="single-focus-container" aria-live="polite"></div>
+                    <details class="more-tasks" id="focus-queue-details" hidden>
+                        <summary id="focus-queue-label">Upcoming queue (0)</summary>
+                        <div class="task-list" id="focus-task-list" aria-live="polite"></div>
                     </details>
-                    <button class="add-task-button" id="focus-add-task"><span>＋</span> Add a task</button>
+                    <button class="add-task-button" id="focus-add-task" type="button"><span>＋</span> Add a task</button>
                 </section>
             </section>
 
@@ -148,12 +148,13 @@
                             </li>
                         </ol>
                     </div>
-                    <div class="task-list" id="task-list" aria-live="polite"></div>
+                    <div class="schedule-priority-container" id="schedule-priority-container" aria-live="polite"></div>
+                    <div class="task-list" id="task-list" aria-live="polite" hidden></div>
                     <details class="more-tasks" id="more-tasks" hidden>
-                        <summary id="more-tasks-label">Other work</summary>
+                        <summary id="more-tasks-label">Completed work (0)</summary>
                         <div class="task-list" id="later-task-list" aria-live="polite"></div>
                     </details>
-                    <button class="add-task-button" id="add-task"><span>＋</span> Add a task</button>
+                    <button class="add-task-button" id="add-task" type="button"><span>＋</span> Add a task</button>
                 </section>
             </section>
 
@@ -406,6 +407,58 @@
                 <button class="primary-button" id="paste-submit-button" type="button" style="padding: 0 14px;">Import
                     assignments</button>
             </div>
+        </section>
+    </div>
+
+    <div class="modal-backdrop" id="task-modal" role="dialog" aria-modal="true" aria-labelledby="task-modal-title" hidden>
+        <section class="integration-panel" style="width: min(100%, 420px);">
+            <header class="integration-header">
+                <div>
+                    <p class="eyebrow">YOUR PLAN</p>
+                    <h2 id="task-modal-title" style="margin: 0; font-family: Manrope, sans-serif; font-size: 19px;">Add a task</h2>
+                </div>
+                <button class="icon-button" id="close-task-modal" type="button" aria-label="Close" title="Close">×</button>
+            </header>
+            <form id="task-form" style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
+                <div>
+                    <label class="field-label" for="task-title-input">Task or assignment title</label>
+                    <input class="text-input" id="task-title-input" placeholder="e.g. Chemistry Midterm Exam or Problem Set 3" required autocomplete="off">
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <div style="flex: 1.1;">
+                        <label class="field-label" for="task-subject-input">Subject / Course</label>
+                        <input class="text-input" id="task-subject-input" placeholder="e.g. Chemistry" value="Study" required autocomplete="off">
+                    </div>
+                    <div style="flex: 0.9;">
+                        <label class="field-label" for="task-due-input">Due date</label>
+                        <input class="text-input" id="task-due-input" type="date" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="field-label">Priority level</label>
+                    <div class="priority-choice-row">
+                        <label class="priority-chip priority-chip-high">
+                            <input type="radio" name="task-priority" value="high" checked>
+                            <span class="priority-chip-span">🔴 High <small>(Assignments & Tests)</small></span>
+                        </label>
+                        <label class="priority-chip priority-chip-med">
+                            <input type="radio" name="task-priority" value="medium">
+                            <span class="priority-chip-span">🟡 Medium <small>(Standard)</small></span>
+                        </label>
+                        <label class="priority-chip priority-chip-low">
+                            <input type="radio" name="task-priority" value="low">
+                            <span class="priority-chip-span">🟢 Low <small>(Gentle)</small></span>
+                        </label>
+                    </div>
+                    <p class="priority-note" id="priority-auto-note" style="margin: 6px 0 0; font-size: 8px; color: var(--orange-dark); font-weight: 600;">
+                        ⚡ All assignments and tests are always automatically placed in High priority.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 10px;">
+                    <button class="outline-button" id="cancel-task-button" type="button" style="width: auto; padding: 0 14px;">Cancel</button>
+                    <button class="primary-button" id="save-task-button" type="submit" style="width: auto; padding: 0 18px;">Add task</button>
+                </div>
+            </form>
         </section>
     </div>
 

@@ -47,12 +47,36 @@ function formatShortDate(isoDate) {
     return new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(`${isoDate}T00:00:00`));
 }
 
+const ASSIGNMENT_OR_TEST_REGEX = /\b(assignment|exam|test|quiz|midterm|final|homework|hw|problem\s*set|pset|paper|project|deliverable|lab\s*practical|presentation|essay|assessment)\b/i;
+
+function isAssignmentOrTest(taskOrTitle) {
+    if (!taskOrTitle) return false;
+    if (typeof taskOrTitle === 'string') return ASSIGNMENT_OR_TEST_REGEX.test(taskOrTitle);
+    if (taskOrTitle.source === 'canvas') return true;
+    const text = `${taskOrTitle.title || ''} ${taskOrTitle.subject || ''}`;
+    return ASSIGNMENT_OR_TEST_REGEX.test(text);
+}
+
+function getTaskPriority(task) {
+    if (isAssignmentOrTest(task)) return 'high';
+    if (task.priority === 'high' || task.priority === 'medium' || task.priority === 'low') {
+        return task.priority;
+    }
+    return 'medium';
+}
+
+function getPriorityRank(priority) {
+    if (priority === 'high') return 1;
+    if (priority === 'medium') return 2;
+    return 3;
+}
+
 function makeStarterTasks() {
     return [
-        { id: 'starter-bio', title: 'Review cell membranes & transport', subject: 'Biology', due: dateAfter(2), targetDate: dateAfter(1), minutes: 35, done: false },
-        { id: 'starter-stats', title: 'Finish problem set 4', subject: 'Statistics', due: dateAfter(1), targetDate: dateAfter(0), minutes: 45, done: false },
-        { id: 'starter-design', title: 'Gather references for studio project', subject: 'Design', due: dateAfter(5), targetDate: dateAfter(3), minutes: 30, done: false },
-        { id: 'starter-chem', title: 'Make a midterm review sheet', subject: 'Chemistry', due: dateAfter(3), targetDate: dateAfter(2), minutes: 40, done: false }
+        { id: 'starter-stats', title: 'Finish problem set 4', subject: 'Statistics', due: dateAfter(1), targetDate: dateAfter(0), minutes: 45, priority: 'high', done: false },
+        { id: 'starter-chem', title: 'Make a midterm review sheet', subject: 'Chemistry', due: dateAfter(3), targetDate: dateAfter(2), minutes: 40, priority: 'high', done: false },
+        { id: 'starter-design', title: 'Gather references for studio project', subject: 'Design', due: dateAfter(5), targetDate: dateAfter(3), minutes: 30, priority: 'high', done: false },
+        { id: 'starter-bio', title: 'Review cell membranes & transport', subject: 'Biology', due: dateAfter(2), targetDate: dateAfter(1), minutes: 35, priority: 'medium', done: false }
     ];
 }
 
@@ -70,7 +94,6 @@ function initialState() {
         points: 0,
         streak: 0,
         lastActiveDate: '',
-        attention: 7,
         attention: 5,
         observation: makeObservation(),
         currentSessionStarted: false,
@@ -90,10 +113,15 @@ function loadState() {
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
         if (!saved || typeof saved !== 'object') return initialState();
         const base = initialState();
+        const loadedTasks = Array.isArray(saved.tasks) ? saved.tasks : base.tasks;
+        const tasks = loadedTasks.map((task) => ({
+            ...task,
+            priority: getTaskPriority(task)
+        }));
         return {
             ...base,
             ...saved,
-            tasks: Array.isArray(saved.tasks) ? saved.tasks : base.tasks,
+            tasks,
             interests: Array.isArray(saved.interests) ? saved.interests : [],
             subjects: Array.isArray(saved.subjects) ? saved.subjects : [],
             profilePrivacy: { ...base.profilePrivacy, ...(saved.profilePrivacy || {}) },
@@ -218,42 +246,250 @@ function interestMatches(task) {
     });
 }
 
+let currentFocusIndex = 0;
+
 function prioritizedTasks() {
     return [...state.tasks].sort((first, second) => {
         if (first.done !== second.done) return first.done ? 1 : -1;
         if (first.done) return first.due.localeCompare(second.due);
+        
+        const firstPri = getPriorityRank(getTaskPriority(first));
+        const secondPri = getPriorityRank(getTaskPriority(second));
+        if (firstPri !== secondPri) return firstPri - secondPri;
+
         const firstUrgent = isUrgent(first);
         const secondUrgent = isUrgent(second);
         if (firstUrgent !== secondUrgent) return firstUrgent ? -1 : 1;
+
         const firstMatches = interestMatches(first);
         const secondMatches = interestMatches(second);
         if (firstMatches !== secondMatches) return firstMatches ? -1 : 1;
+
         return first.due.localeCompare(second.due);
     });
 }
 
+function renderSingleFocusTask(activeTasks) {
+    const container = $('#single-focus-view');
+    if (!container) return;
+    container.replaceChildren();
+
+    if (!activeTasks || activeTasks.length === 0) {
+        const emptyCard = document.createElement('div');
+        emptyCard.className = 'single-task-empty';
+        emptyCard.innerHTML = `
+            <span class="empty-icon">✓</span>
+            <h3>All caught up!</h3>
+            <p>You cleared all high, medium, and low priority activities for today.</p>
+            <button class="outline-button" id="focus-empty-schedule-btn" type="button" style="width: auto; padding: 0 16px;">View full schedule</button>
+        `;
+        emptyCard.querySelector('#focus-empty-schedule-btn')?.addEventListener('click', () => {
+            window.location.hash = '#schedule';
+            setActiveView('schedule');
+        });
+        container.append(emptyCard);
+
+        const queueDetails = $('#focus-queue-details');
+        if (queueDetails) queueDetails.hidden = true;
+
+        $('#next-task-title').textContent = 'Your list is clear. Take a breath.';
+        $('#next-task-description').textContent = 'You made space for the things that matter.';
+        $('#start-focus').disabled = true;
+        $('#start-focus').classList.add('is-disabled');
+        return;
+    }
+
+    if (currentFocusIndex >= activeTasks.length || currentFocusIndex < 0) {
+        currentFocusIndex = 0;
+    }
+
+    const task = activeTasks[currentFocusIndex];
+    const priority = getTaskPriority(task);
+    const isTestOrAssignment = task.source === 'canvas' || isAssignmentOrTest(task);
+
+    const card = document.createElement('article');
+    card.className = `single-task-card priority-${priority}`;
+
+    const topbar = document.createElement('div');
+    topbar.className = 'single-task-topbar';
+
+    const stepIndicator = document.createElement('span');
+    stepIndicator.className = 'single-task-step';
+    stepIndicator.textContent = `Activity ${currentFocusIndex + 1} of ${activeTasks.length} remaining`;
+
+    const priorityTag = document.createElement('span');
+    priorityTag.className = `priority-tag priority-${priority}`;
+    if (priority === 'high') {
+        priorityTag.textContent = `🔴 High${isTestOrAssignment ? ' · Assignment / Test' : ''}`;
+    } else if (priority === 'medium') {
+        priorityTag.textContent = '🟡 Medium · Core Study';
+    } else {
+        priorityTag.textContent = '🟢 Low · Gentle';
+    }
+
+    topbar.append(stepIndicator, priorityTag);
+
+    const main = document.createElement('div');
+    main.className = 'single-task-main';
+
+    const title = document.createElement('h3');
+    title.className = 'single-task-title';
+    title.textContent = task.title;
+
+    const meta = document.createElement('div');
+    meta.className = 'single-task-meta';
+
+    const subject = document.createElement('span');
+    subject.textContent = task.subject || 'Study';
+
+    const due = document.createElement('span');
+    const targetDate = task.targetDate || task.due;
+    due.textContent = !isUrgent(task) && targetDate < task.due
+        ? `Aim for ${formatShortDate(targetDate)} · actual due ${formatShortDate(task.due)}`
+        : dueLabel(task.due);
+
+    const duration = document.createElement('span');
+    duration.textContent = `${task.minutes || 30} min`;
+
+    meta.append(subject, due, duration);
+    main.append(title, meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'single-task-actions';
+
+    const completeBtn = document.createElement('button');
+    completeBtn.className = 'single-task-complete-btn';
+    completeBtn.type = 'button';
+    completeBtn.textContent = '✓ Mark complete & advance';
+    completeBtn.addEventListener('click', () => {
+        toggleTask(task.id);
+        if (currentFocusIndex >= activeTasks.length - 1) {
+            currentFocusIndex = 0;
+        }
+    });
+
+    actions.append(completeBtn);
+
+    if (activeTasks.length > 1) {
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'single-task-skip-btn';
+        nextBtn.type = 'button';
+        nextBtn.textContent = 'Next in queue →';
+        nextBtn.addEventListener('click', () => {
+            currentFocusIndex = (currentFocusIndex + 1) % activeTasks.length;
+            renderTasks();
+        });
+        actions.append(nextBtn);
+    }
+
+    card.append(topbar, main, actions);
+    container.append(card);
+
+    $('#next-task-title').textContent = task.title;
+    $('#next-task-description').textContent = `${task.subject} · ${dueLabel(task.due)} · ${task.minutes || 30} min`;
+    $('#start-focus').disabled = false;
+    $('#start-focus').classList.remove('is-disabled');
+
+    const queueDetails = $('#focus-queue-details');
+    const queueLabel = $('#focus-queue-label');
+    const queueList = $('#focus-task-list');
+    if (queueDetails && queueList) {
+        const upcomingTasks = activeTasks.filter((_, idx) => idx !== currentFocusIndex);
+        if (upcomingTasks.length > 0) {
+            queueDetails.hidden = false;
+            if (queueLabel) queueLabel.textContent = `Upcoming queue (${upcomingTasks.length})`;
+            renderTaskRows(queueList, upcomingTasks);
+        } else {
+            queueDetails.hidden = true;
+        }
+    }
+}
+
+function renderSchedulePriorityGroups() {
+    const container = $('#schedule-priority-container');
+    if (!container) return;
+    container.replaceChildren();
+
+    const tasks = prioritizedTasks();
+    const incomplete = tasks.filter((t) => !t.done);
+    const highTasks = incomplete.filter((t) => getTaskPriority(t) === 'high');
+    const medTasks = incomplete.filter((t) => getTaskPriority(t) === 'medium');
+    const lowTasks = incomplete.filter((t) => getTaskPriority(t) === 'low');
+
+    const groups = [
+        {
+            key: 'high',
+            label: 'High Priority (Assignments & Tests)',
+            emoji: '🔴',
+            tasks: highTasks
+        },
+        {
+            key: 'medium',
+            label: 'Medium Priority (Core Study)',
+            emoji: '🟡',
+            tasks: medTasks
+        },
+        {
+            key: 'low',
+            label: 'Low Priority (Gentle & Extra)',
+            emoji: '🟢',
+            tasks: lowTasks
+        }
+    ];
+
+    for (const group of groups) {
+        const groupEl = document.createElement('section');
+        groupEl.className = `schedule-group schedule-group-${group.key}`;
+
+        const header = document.createElement('div');
+        header.className = 'schedule-group-header';
+
+        const title = document.createElement('div');
+        title.className = 'schedule-group-title';
+        title.innerHTML = `<span>${group.emoji}</span> <span>${group.label}</span>`;
+
+        const count = document.createElement('span');
+        count.className = 'schedule-group-count';
+        count.textContent = `${group.tasks.length}`;
+
+        header.append(title, count);
+        groupEl.append(header);
+
+        const list = document.createElement('div');
+        list.className = 'task-list';
+        if (group.tasks.length === 0) {
+            const empty = document.createElement('p');
+            empty.className = 'prototype-note';
+            empty.style.margin = '4px 0 8px';
+            empty.style.color = '#a8a29e';
+            empty.textContent = `No ${group.key} priority activities right now.`;
+            list.append(empty);
+        } else {
+            renderTaskRows(list, group.tasks);
+        }
+        groupEl.append(list);
+        container.append(groupEl);
+    }
+
+    const completedTasks = tasks.filter((t) => t.done);
+    const completedDetails = $('#more-tasks');
+    const completedList = $('#later-task-list');
+    if (completedDetails && completedList) {
+        completedDetails.hidden = completedTasks.length === 0;
+        $('#more-tasks-label').textContent = `Completed work (${completedTasks.length})`;
+        renderTaskRows(completedList, completedTasks);
+    }
+}
+
 function renderTasks() {
     const tasks = prioritizedTasks();
-    const visibleIds = new Set();
-    const urgentTasks = tasks.filter((task) => !task.done && isUrgent(task));
-    urgentTasks.forEach((task) => visibleIds.add(task.id));
-    const nextTask = tasks.find((task) => !task.done && !isUrgent(task) && interestMatches(task))
-        || tasks.find((task) => !task.done && !isUrgent(task));
-    if (nextTask) visibleIds.add(nextTask.id);
-    const visibleTasks = tasks.filter((task) => visibleIds.has(task.id));
-    const laterTasks = tasks.filter((task) => !visibleIds.has(task.id));
-    renderTaskRows(taskList, visibleTasks);
-    renderTaskRows($('#later-task-list'), laterTasks);
-    $('#more-tasks').hidden = laterTasks.length === 0;
-    $('#more-tasks-label').textContent = `Other work (${laterTasks.length})`;
-    renderTaskRows($('#focus-task-list'), visibleTasks);
-    renderTaskRows($('#focus-later-task-list'), laterTasks);
-    $('#focus-more-tasks').hidden = laterTasks.length === 0;
-    $('#focus-more-tasks-label').textContent = `Other work (${laterTasks.length})`;
-    renderNextTask();
+    const activeTasks = tasks.filter((task) => !task.done);
+    renderSingleFocusTask(activeTasks);
+    renderSchedulePriorityGroups();
 }
 
 function renderTaskRows(container, tasks) {
+    if (!container) return;
     container.replaceChildren();
     for (const [index, task] of tasks.entries()) {
         const row = document.createElement('article');
@@ -285,25 +521,19 @@ function renderTaskRows(container, tasks) {
         meta.append(subject, document.createTextNode('·'), due);
         info.append(title, meta);
 
+        const priority = getTaskPriority(task);
         const badge = document.createElement('span');
         const urgent = isUrgent(task);
-        const interested = interestMatches(task);
-        badge.className = `task-badge${urgent ? ' urgent' : interested ? ' interest' : ''}`;
-        badge.textContent = urgent ? 'Due soon' : interested ? 'Your interest' : `${task.minutes || 30} min`;
+        badge.className = `task-badge priority-${priority}${urgent ? ' urgent' : ''}`;
+        badge.textContent = priority === 'high' ? 'High' : priority === 'medium' ? 'Medium' : 'Low';
         row.append(check, info, badge);
         container.append(row);
     }
 }
 
 function renderNextTask() {
-    const next = prioritizedTasks().find((task) => !task.done);
-    $('#next-task-title').textContent = next ? next.title : 'Your list is clear. Take a breath.';
-    const nextDue = next && !isUrgent(next) && next.targetDate && next.targetDate < next.due
-        ? `Aim for ${formatShortDate(next.targetDate)} · actual due ${formatShortDate(next.due)}`
-        : next ? dueLabel(next.due) : '';
-    $('#next-task-description').textContent = next ? `${next.subject} · ${nextDue} · ${next.minutes || 30} min` : 'You made space for the things that matter.';
-    $('#start-focus').disabled = !next;
-    $('#start-focus').classList.toggle('is-disabled', !next);
+    const activeTasks = prioritizedTasks().filter((t) => !t.done);
+    renderSingleFocusTask(activeTasks);
 }
 
 function showToast(message) {
@@ -771,22 +1001,50 @@ function showOnboardingStep(step) {
     if (step === 2) document.querySelector('input[name="mode"]:checked')?.focus();
 }
 
-function addTask() {
-    const title = window.prompt('What do you need to work on?');
-    if (!title?.trim()) return;
-    const subject = window.prompt('Which subject is it for?', 'Study') || 'Study';
-    const due = window.prompt('Due date (YYYY-MM-DD)', dateAfter(3));
-    const parsedDue = due ? new Date(`${due}T00:00:00`) : null;
-    if (!due || !/^\d{4}-\d{2}-\d{2}$/.test(due) || Number.isNaN(parsedDue?.getTime()) || localDateString(parsedDue) !== due) {
-        showToast('Please enter a due date as YYYY-MM-DD.');
-        return;
+function openTaskModal() {
+    const modal = $('#task-modal');
+    if (!modal) return;
+    modal.hidden = false;
+    $('#task-title-input').value = '';
+    $('#task-subject-input').value = 'Study';
+    $('#task-due-input').value = dateAfter(3);
+    const highRadio = document.querySelector('input[name="task-priority"][value="high"]');
+    if (highRadio) highRadio.checked = true;
+    updatePriorityLock(false);
+    $('#task-title-input').focus();
+}
+
+function closeTaskModal() {
+    const modal = $('#task-modal');
+    if (modal) modal.hidden = true;
+}
+
+function updatePriorityLock(isAutoHigh) {
+    const medRadio = document.querySelector('input[name="task-priority"][value="medium"]');
+    const lowRadio = document.querySelector('input[name="task-priority"][value="low"]');
+    const highRadio = document.querySelector('input[name="task-priority"][value="high"]');
+    const autoNote = $('#priority-auto-note');
+
+    if (isAutoHigh) {
+        if (highRadio) highRadio.checked = true;
+        if (medRadio) medRadio.disabled = true;
+        if (lowRadio) lowRadio.disabled = true;
+        if (autoNote) {
+            autoNote.textContent = '⚡ Detected assignment or test — automatically locked to High priority.';
+            autoNote.style.color = 'var(--orange-dark)';
+        }
+    } else {
+        if (medRadio) medRadio.disabled = false;
+        if (lowRadio) lowRadio.disabled = false;
+        if (autoNote) {
+            autoNote.textContent = '⚡ All assignments and tests are always automatically placed in High priority.';
+            autoNote.style.color = '#78716c';
+        }
     }
-    const dueDays = Math.max(0, dayDifference(due));
-    const targetLead = Math.min(3, Math.max(1, Math.ceil(dueDays / 3)));
-    state.tasks.push({ id: crypto.randomUUID?.() || `task-${Date.now()}`, title: title.trim(), subject: subject.trim() || 'Study', due, targetDate: dateBefore(due, targetLead), minutes: 30, done: false });
-    saveState();
-    renderAll();
-    showToast('Added. Your plan has been quietly reprioritized.');
+}
+
+function addTask() {
+    openTaskModal();
 }
 
 function startTimer() {
@@ -1004,6 +1262,7 @@ function importCanvasEvents(events, note = $('#calendar-note')) {
             due: event.due,
             targetDate: dateBefore(event.due, leadDays),
             minutes: existing?.minutes || 30,
+            priority: 'high',
             done: existing?.done || false
         };
         if (existing) Object.assign(existing, task);
@@ -1095,8 +1354,51 @@ $('#onboarding')?.addEventListener('click', (event) => {
     }
 });
 
-$('#add-task').addEventListener('click', addTask);
-$('#focus-add-task').addEventListener('click', addTask);
+$('#add-task')?.addEventListener('click', openTaskModal);
+$('#focus-add-task')?.addEventListener('click', openTaskModal);
+$('#close-task-modal')?.addEventListener('click', closeTaskModal);
+$('#cancel-task-button')?.addEventListener('click', closeTaskModal);
+$('#task-modal')?.addEventListener('click', (event) => {
+    if (event.target === $('#task-modal')) closeTaskModal();
+});
+$('#task-title-input')?.addEventListener('input', (event) => {
+    const isAuto = isAssignmentOrTest(event.target.value);
+    updatePriorityLock(isAuto);
+});
+$('#task-form')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const title = $('#task-title-input').value.trim();
+    if (!title) return;
+    const subject = $('#task-subject-input').value.trim() || 'Study';
+    const due = $('#task-due-input').value;
+    if (!due || !/^\d{4}-\d{2}-\d{2}$/.test(due)) {
+        showToast('Please select a valid due date.');
+        return;
+    }
+    const chosenPriority = document.querySelector('input[name="task-priority"]:checked')?.value || 'medium';
+    // All assignments and tests are always High priority
+    const priority = (isAssignmentOrTest(title) || isAssignmentOrTest(subject)) ? 'high' : chosenPriority;
+
+    const dueDays = Math.max(0, dayDifference(due));
+    const targetLead = Math.min(3, Math.max(1, Math.ceil(dueDays / 3)));
+
+    state.tasks.push({
+        id: crypto.randomUUID?.() || `task-${Date.now()}`,
+        title,
+        subject,
+        due,
+        targetDate: dateBefore(due, targetLead),
+        minutes: 30,
+        priority,
+        done: false
+    });
+
+    saveState();
+    renderAll();
+    closeTaskModal();
+    const priorityLabel = priority === 'high' ? 'High' : priority === 'medium' ? 'Medium' : 'Low';
+    showToast(`Added "${title}" as ${priorityLabel} priority.`);
+});
 $('#import-canvas-file-button').addEventListener('click', () => $('#canvas-ics-file').click());
 $('#canvas-ics-file').addEventListener('change', async (event) => {
     await importCanvasFile(event.target.files?.[0]);
