@@ -1,0 +1,4 @@
+fastapi
+uvicorn
+icalendar
+python-dotenv
