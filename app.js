@@ -72,12 +72,7 @@ function getPriorityRank(priority) {
 }
 
 function makeStarterTasks() {
-    return [
-        { id: 'starter-stats', title: 'Finish problem set 4', subject: 'Statistics', due: dateAfter(1), targetDate: dateAfter(0), minutes: 45, priority: 'high', done: false },
-        { id: 'starter-chem', title: 'Make a midterm review sheet', subject: 'Chemistry', due: dateAfter(3), targetDate: dateAfter(2), minutes: 40, priority: 'high', done: false },
-        { id: 'starter-design', title: 'Gather references for studio project', subject: 'Design', due: dateAfter(5), targetDate: dateAfter(3), minutes: 30, priority: 'high', done: false },
-        { id: 'starter-bio', title: 'Review cell membranes & transport', subject: 'Biology', due: dateAfter(2), targetDate: dateAfter(1), minutes: 35, priority: 'medium', done: false }
-    ];
+    return [];
 }
 
 function initialState() {
@@ -114,10 +109,12 @@ function loadState() {
         if (!saved || typeof saved !== 'object') return initialState();
         const base = initialState();
         const loadedTasks = Array.isArray(saved.tasks) ? saved.tasks : base.tasks;
-        const tasks = loadedTasks.map((task) => ({
-            ...task,
-            priority: getTaskPriority(task)
-        }));
+        const tasks = loadedTasks
+            .filter((task) => !task.id.startsWith('starter-'))
+            .map((task) => ({
+                ...task,
+                priority: getTaskPriority(task)
+            }));
         return {
             ...base,
             ...saved,
@@ -130,7 +127,9 @@ function loadState() {
                 ? {
                     ...base.observation,
                     ...saved.observation,
-                    completedTaskIds: Array.isArray(saved.observation.completedTaskIds) ? saved.observation.completedTaskIds : [],
+                    completedTaskIds: Array.isArray(saved.observation.completedTaskIds)
+                        ? saved.observation.completedTaskIds.filter((id) => !id.startsWith('starter-'))
+                        : [],
                     chatMessages: Array.isArray(saved.observation.chatMessages) ? saved.observation.chatMessages : [],
                     matchedPeer: saved.observation.matchedPeer
                         ? { ...(DEMO_MEMBERS.find((member) => member.name === saved.observation.matchedPeer.name) || {}), ...saved.observation.matchedPeer, focus: saved.observation.matchedPeer.focus ?? saved.observation.matchedPeer.rating ?? DEMO_MEMBERS.find((member) => member.name === saved.observation.matchedPeer.name)?.focus ?? 5, id: saved.observation.matchedPeer.id || DEMO_MEMBERS.find((member) => member.name === saved.observation.matchedPeer.name)?.id || 'casey' }
@@ -275,25 +274,41 @@ function renderSingleFocusTask(activeTasks) {
     container.replaceChildren();
 
     if (!activeTasks || activeTasks.length === 0) {
+        const hasTasks = state.tasks && state.tasks.length > 0;
         const emptyCard = document.createElement('div');
         emptyCard.className = 'single-task-empty';
-        emptyCard.innerHTML = `
-            <span class="empty-icon">✓</span>
-            <h3>All caught up!</h3>
-            <p>You cleared all high, medium, and low priority activities for today.</p>
-            <button class="outline-button" id="focus-empty-schedule-btn" type="button" style="width: auto; padding: 0 16px;">View full schedule</button>
-        `;
-        emptyCard.querySelector('#focus-empty-schedule-btn')?.addEventListener('click', () => {
-            window.location.hash = '#schedule';
-            setActiveView('schedule');
-        });
+        if (hasTasks) {
+            emptyCard.innerHTML = `
+                <span class="empty-icon">✓</span>
+                <h3>All caught up!</h3>
+                <p>You cleared all high, medium, and low priority activities for today.</p>
+                <button class="outline-button" id="focus-empty-schedule-btn" type="button" style="width: auto; padding: 0 16px;">View full schedule</button>
+            `;
+            emptyCard.querySelector('#focus-empty-schedule-btn')?.addEventListener('click', () => {
+                window.location.hash = '#schedule';
+                setActiveView('schedule');
+            });
+            $('#next-task-title').textContent = 'Your list is clear. Take a breath.';
+            $('#next-task-description').textContent = 'You made space for the things that matter.';
+        } else {
+            emptyCard.innerHTML = `
+                <span class="empty-icon">📋</span>
+                <h3>No tasks yet</h3>
+                <p>Add your first task or import your Canvas calendar to build your focus queue.</p>
+                <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                    <button class="primary-button" id="focus-empty-add-btn" type="button" style="width: auto; padding: 0 16px;">＋ Add a task</button>
+                    <a class="outline-button" href="#schedule" style="width: auto; padding: 0 14px; text-decoration: none; display: inline-flex; align-items: center;">Import Canvas →</a>
+                </div>
+            `;
+            emptyCard.querySelector('#focus-empty-add-btn')?.addEventListener('click', openTaskModal);
+            $('#next-task-title').textContent = 'No tasks yet. Ready when you are.';
+            $('#next-task-description').textContent = 'Add a task or import your Canvas assignments to get started.';
+        }
         container.append(emptyCard);
 
         const queueDetails = $('#focus-queue-details');
         if (queueDetails) queueDetails.hidden = true;
 
-        $('#next-task-title').textContent = 'Your list is clear. Take a breath.';
-        $('#next-task-description').textContent = 'You made space for the things that matter.';
         $('#start-focus').disabled = true;
         $('#start-focus').classList.add('is-disabled');
         return;
