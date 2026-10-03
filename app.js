@@ -2,6 +2,18 @@ const STORAGE_KEY = 'daymark-state-v1';
 const DAY_MS = 24 * 60 * 60 * 1000;
 const OBSERVATION_DAYS = 0;
 
+const DEMO_MEMBERS = [
+    { id: 'taylor', name: 'Taylor', focus: 8, level: 'Undergraduate', subjects: ['Biology', 'Psychology'], hours: { daily: 2.4, weekly: 14.2, monthly: 51, all: 186 } },
+    { id: 'jordan', name: 'Jordan', focus: 6, level: 'Graduate student', subjects: ['Statistics', 'Technology'], hours: { daily: 1.8, weekly: 11.6, monthly: 43, all: 214 } },
+    { id: 'riley', name: 'Riley', focus: 9, level: 'Undergraduate', subjects: ['Design', 'Creativity'], hours: { daily: 3.1, weekly: 18.4, monthly: 67, all: 302 } },
+    { id: 'casey', name: 'Casey', focus: 5, level: 'High school', subjects: ['History', 'People & culture'], hours: { daily: 1.2, weekly: 8.1, monthly: 30, all: 91 } },
+    { id: 'avery', name: 'Avery', focus: 7, level: 'Undergraduate', subjects: ['Chemistry', 'Nature'], hours: { daily: 2.0, weekly: 13.5, monthly: 48, all: 175 } }
+];
+
+function makeProfilePrivacy() {
+    return { discoverable: true, focus: true, level: true, hours: true, interests: true };
+}
+
 function makeObservation() {
     return {
         startedAt: Date.now(),
@@ -48,8 +60,11 @@ function initialState() {
     return {
         onboarded: false,
         name: 'Sam',
+        studyLevel: 'Undergraduate',
         interests: [],
         subjects: [],
+        profilePrivacy: makeProfilePrivacy(),
+        focusSecondsByDay: {},
         mode: 'casual',
         tasks: makeStarterTasks(),
         points: 0,
@@ -81,8 +96,18 @@ function loadState() {
             tasks: Array.isArray(saved.tasks) ? saved.tasks : base.tasks,
             interests: Array.isArray(saved.interests) ? saved.interests : [],
             subjects: Array.isArray(saved.subjects) ? saved.subjects : [],
+            profilePrivacy: { ...base.profilePrivacy, ...(saved.profilePrivacy || {}) },
+            focusSecondsByDay: saved.focusSecondsByDay && typeof saved.focusSecondsByDay === 'object' ? saved.focusSecondsByDay : {},
             observation: saved.observation && typeof saved.observation === 'object'
-                ? { ...base.observation, ...saved.observation, completedTaskIds: Array.isArray(saved.observation.completedTaskIds) ? saved.observation.completedTaskIds : [], chatMessages: Array.isArray(saved.observation.chatMessages) ? saved.observation.chatMessages : [] }
+                ? {
+                    ...base.observation,
+                    ...saved.observation,
+                    completedTaskIds: Array.isArray(saved.observation.completedTaskIds) ? saved.observation.completedTaskIds : [],
+                    chatMessages: Array.isArray(saved.observation.chatMessages) ? saved.observation.chatMessages : [],
+                    matchedPeer: saved.observation.matchedPeer
+                        ? { ...(DEMO_MEMBERS.find((member) => member.name === saved.observation.matchedPeer.name) || {}), ...saved.observation.matchedPeer, focus: saved.observation.matchedPeer.focus ?? saved.observation.matchedPeer.rating ?? DEMO_MEMBERS.find((member) => member.name === saved.observation.matchedPeer.name)?.focus ?? 5, id: saved.observation.matchedPeer.id || DEMO_MEMBERS.find((member) => member.name === saved.observation.matchedPeer.name)?.id || 'casey' }
+                        : null
+                }
                 : base.observation
         };
     } catch {
@@ -131,18 +156,11 @@ function calculateAttentionRating() {
 }
 
 function bestDemoPeer(rating) {
-    const peers = [
-        { name: 'Taylor', rating: 8, subjects: ['Biology', 'Psychology'] },
-        { name: 'Jordan', rating: 6, subjects: ['Statistics', 'Technology'] },
-        { name: 'Riley', rating: 9, subjects: ['Design', 'Creativity'] },
-        { name: 'Casey', rating: 5, subjects: ['History', 'People & culture'] },
-        { name: 'Avery', rating: 7, subjects: ['Chemistry', 'Nature'] }
-    ];
     const interests = [...state.interests, ...state.subjects].map((item) => item.toLowerCase());
-    return peers.sort((first, second) => {
+    return [...DEMO_MEMBERS].sort((first, second) => {
         const firstOverlap = first.subjects.filter((item) => interests.includes(item.toLowerCase())).length;
         const secondOverlap = second.subjects.filter((item) => interests.includes(item.toLowerCase())).length;
-        return Math.abs(first.rating - rating) - Math.abs(second.rating - rating) || secondOverlap - firstOverlap;
+        return Math.abs(first.focus - rating) - Math.abs(second.focus - rating) || secondOverlap - firstOverlap;
     })[0];
 }
 
@@ -228,6 +246,10 @@ function renderTasks() {
     renderTaskRows($('#later-task-list'), laterTasks);
     $('#more-tasks').hidden = laterTasks.length === 0;
     $('#more-tasks-label').textContent = `Other work (${laterTasks.length})`;
+    renderTaskRows($('#focus-task-list'), visibleTasks);
+    renderTaskRows($('#focus-later-task-list'), laterTasks);
+    $('#focus-more-tasks').hidden = laterTasks.length === 0;
+    $('#focus-more-tasks-label').textContent = `Other work (${laterTasks.length})`;
     renderNextTask();
 }
 
@@ -408,13 +430,191 @@ function renderProfile() {
     $('#profile-name').textContent = name;
     $('#welcome-title').innerHTML = `Good morning, <span class="welcome-name"></span><span>.</span>`;
     $('.welcome-name').textContent = name;
-    $('.avatar').textContent = name.charAt(0).toUpperCase();
+    document.querySelectorAll('.avatar').forEach((el) => { el.textContent = name.charAt(0).toUpperCase(); });
     const now = new Date();
     const format = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(now).toUpperCase();
     $('.breadcrumb').innerHTML = `${format}<span class="top-dot"> · </span>YOUR STUDY SPACE`;
     $('.date-stamp .date-day').textContent = new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(now).toUpperCase();
     $('.date-stamp strong').textContent = now.getDate().toString().padStart(2, '0');
     $('.date-stamp>span:last-child').textContent = new Intl.DateTimeFormat(undefined, { month: 'short' }).format(now).toUpperCase();
+}
+
+function lockedInHours(period) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dayLimits = { daily: 1, weekly: 7, monthly: 30 };
+    const limit = dayLimits[period];
+    const totalSeconds = Object.entries(state.focusSecondsByDay).reduce((total, [day, seconds]) => {
+        if (limit) {
+            const recorded = new Date(`${day}T00:00:00`);
+            const age = Math.floor((today - recorded) / DAY_MS);
+            if (age < 0 || age >= limit) return total;
+        }
+        return total + Math.max(0, Number(seconds) || 0);
+    }, 0);
+    return totalSeconds / 3600;
+}
+
+function buildProfileMetrics(profile, period, privacy = {}) {
+    return [
+        { label: 'Focus level', value: privacy.focus === false ? 'Private' : `${profile.focus}/10`, hidden: privacy.focus === false },
+        { label: 'Study level', value: privacy.level === false ? 'Private' : profile.level, hidden: privacy.level === false },
+        { label: `${period === 'all' ? 'All-time' : period[0].toUpperCase() + period.slice(1)} locked-in hours`, value: privacy.hours === false ? 'Private' : `${profile.hours.toFixed(1)}h`, hidden: privacy.hours === false },
+        { label: 'Interests & subjects', value: privacy.interests === false ? 'Private' : profile.subjects.join(', ') || 'Not added', hidden: privacy.interests === false }
+    ];
+}
+
+function makeMetric(label, value, className = '') {
+    const item = document.createElement('div');
+    item.className = `profile-metric${className ? ` ${className}` : ''}`;
+    const title = document.createElement('span');
+    title.textContent = label;
+    const detail = document.createElement('strong');
+    detail.textContent = value;
+    item.append(title, detail);
+    return item;
+}
+
+function profileForId(id) {
+    if (!id || id === 'me') {
+        return {
+            id: 'me', name: state.name || 'Student', focus: state.attention,
+            level: state.studyLevel || 'Undergraduate', subjects: [...state.interests, ...state.subjects],
+            hours: lockedInHours('all'), privacy: state.profilePrivacy, isSelf: true
+        };
+    }
+    const member = DEMO_MEMBERS.find((person) => person.id === id);
+    return member ? { ...member, hours: member.hours.all, privacy: {}, isSelf: false } : null;
+}
+
+function renderMemberProfile(id) {
+    const profile = profileForId(id);
+    const card = $('#member-profile-card');
+    card.replaceChildren();
+    if (!profile) {
+        $('#profile-page-title').textContent = 'Profile not found';
+        $('#profile-page-subtitle').textContent = 'That member profile is unavailable.';
+        $('#profile-settings').hidden = true;
+        return;
+    }
+    $('#profile-page-title').textContent = profile.isSelf ? 'My profile' : `${profile.name}'s profile`;
+    $('#profile-page-subtitle').textContent = profile.isSelf ? 'Only the information you choose is shared in people search.' : 'Member profile · sample data';
+    $('#profile-settings').hidden = !profile.isSelf;
+
+    const header = document.createElement('header');
+    header.className = 'member-profile-header';
+    const avatar = document.createElement('span');
+    avatar.className = 'member-profile-avatar';
+    avatar.textContent = profile.name.charAt(0).toUpperCase();
+    const identity = document.createElement('div');
+    identity.className = 'member-profile-identity';
+    const name = document.createElement('h2');
+    name.textContent = profile.name;
+    const profilePrivacy = profile.isSelf ? {} : profile.privacy;
+    const level = document.createElement('p');
+    level.textContent = profilePrivacy.level === false ? 'Study level private' : profile.level;
+    identity.append(name, level);
+    header.append(avatar, identity);
+    card.append(header);
+
+    const metricGrid = document.createElement('div');
+    metricGrid.className = 'profile-metrics-grid';
+    for (const metric of buildProfileMetrics(profile, 'all', profilePrivacy)) {
+        metricGrid.append(makeMetric(metric.label, metric.value, metric.hidden ? 'is-private' : ''));
+    }
+    card.append(metricGrid);
+
+    if (profile.isSelf) {
+        for (const field of ['discoverable', 'focus', 'level', 'hours', 'interests']) {
+            $(`#privacy-${field}`).checked = Boolean(state.profilePrivacy[field]);
+        }
+        $('#profile-study-level').value = state.studyLevel || 'Undergraduate';
+    }
+}
+
+let leaderboardPeriod = 'daily';
+
+function leaderboardMembers() {
+    const people = DEMO_MEMBERS.map((member) => ({
+        ...member,
+        privacy: { focus: true, level: true, hours: true, interests: true },
+        isSelf: false,
+        hours: member.hours[leaderboardPeriod]
+    }));
+    if (state.profilePrivacy.discoverable) {
+        people.push({
+            id: 'me', name: state.name || 'Student', focus: state.attention,
+            level: state.studyLevel || 'Undergraduate', subjects: [...state.interests, ...state.subjects],
+            hours: lockedInHours(leaderboardPeriod), privacy: state.profilePrivacy, isSelf: true
+        });
+    }
+    return people;
+}
+
+function renderLeaderboard() {
+    const list = $('#leaderboard-list');
+    if (!list) return;
+    const query = $('#people-search').value.trim().toLowerCase();
+    const sortBy = $('#leaderboard-sort').value;
+    const sortPrivacyField = sortBy === 'focus' ? 'focus' : 'hours';
+    $('#leaderboard-caption').textContent = `Ranked by ${sortBy === 'focus' ? 'focus level' : 'locked-in hours'} · ${leaderboardPeriod === 'all' ? 'all time' : leaderboardPeriod}`;
+    const people = leaderboardMembers().filter((person) => {
+        const searchable = [person.name, person.privacy.level === false ? '' : person.level, ...(person.privacy.interests === false ? [] : person.subjects)].join(' ').toLowerCase();
+        return searchable.includes(query);
+    }).sort((first, second) => {
+        const firstHidden = first.privacy[sortPrivacyField] === false;
+        const secondHidden = second.privacy[sortPrivacyField] === false;
+        if (firstHidden !== secondHidden) return firstHidden ? 1 : -1;
+        const firstValue = sortBy === 'focus' ? first.focus : first.hours;
+        const secondValue = sortBy === 'focus' ? second.focus : second.hours;
+        return secondValue - firstValue || first.name.localeCompare(second.name);
+    });
+    list.replaceChildren();
+    if (!people.length) {
+        const empty = document.createElement('p');
+        empty.className = 'people-empty';
+        empty.textContent = 'No visible profiles match that search.';
+        list.append(empty);
+        return;
+    }
+    people.forEach((person, index) => {
+        const link = document.createElement('a');
+        link.className = `leaderboard-row${person.isSelf ? ' own-leaderboard-row' : ''}`;
+        link.href = `#profile/${person.id}`;
+        const rank = document.createElement('span');
+        rank.className = 'leaderboard-rank';
+        rank.textContent = String(index + 1).padStart(2, '0');
+        const avatar = document.createElement('span');
+        avatar.className = 'leaderboard-avatar';
+        avatar.textContent = person.name.charAt(0).toUpperCase();
+        const identity = document.createElement('span');
+        identity.className = 'leaderboard-identity';
+        const personName = document.createElement('strong');
+        personName.textContent = person.isSelf ? `${person.name} · You` : person.name;
+        const personInfo = document.createElement('small');
+        personInfo.textContent = person.privacy.level === false ? 'Study level private' : person.level;
+        identity.append(personName, personInfo);
+        const focus = document.createElement('span');
+        focus.className = 'leaderboard-stat';
+        focus.innerHTML = '<small>FOCUS</small>';
+        const focusValue = document.createElement('strong');
+        focusValue.textContent = person.privacy.focus === false ? 'Private' : `${person.focus}/10`;
+        focus.append(focusValue);
+        const hours = document.createElement('span');
+        hours.className = 'leaderboard-stat hours-stat';
+        hours.innerHTML = `<small>${leaderboardPeriod === 'all' ? 'ALL TIME' : leaderboardPeriod.toUpperCase()}</small>`;
+        const hoursValue = document.createElement('strong');
+        hoursValue.textContent = person.privacy.hours === false ? 'Private' : `${person.hours.toFixed(1)}h`;
+        hours.append(hoursValue);
+        link.append(rank, avatar, identity, focus, hours);
+        list.append(link);
+    });
+}
+
+function renderSelectedProfile() {
+    const route = window.location.hash.slice(1);
+    const id = route.startsWith('profile/') ? decodeURIComponent(route.slice('profile/'.length)) : 'me';
+    renderMemberProfile(id);
 }
 
 function renderAttention() {
@@ -434,14 +634,24 @@ function renderAttention() {
     $('#observed-away').textContent = observation.interruptionCount;
     if (ready && observation.matchedPeer) {
         $('#observation-status').textContent = 'Observation complete. Your focus profile is ready.';
-        $('#match-result').textContent = `Demo match: ${observation.matchedPeer.name} · ${observation.matchedPeer.rating}/10 focus · Live matching requires a connected service.`;
+        $('#match-result').textContent = `Demo match: ${observation.matchedPeer.name} · ${observation.matchedPeer.focus}/10 focus · Live matching requires a connected service.`;
+        $('#matched-member-link-row').hidden = false;
+        $('#matched-member-name-link').textContent = `View ${observation.matchedPeer.name}'s profile`;
+        $('#matched-member-name-link').href = `#profile/${observation.matchedPeer.id}`;
+        $('#matched-buddy-profile-link').href = `#profile/${observation.matchedPeer.id}`;
+        $('#matched-buddy-profile-link').textContent = 'View profile →';
         $('#open-partner-chat').hidden = false;
+        $('#matched-buddy-summary').textContent = `${observation.matchedPeer.name} · ${observation.matchedPeer.focus}/10 focus · ${observation.matchedPeer.level}`;
     } else {
         const remainingMs = Math.max(0, observationDeadline() - Date.now());
         const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1000));
         $('#observation-status').textContent = `Learning your rhythm · ${remainingHours}h until matching is available.`;
         $('#match-result').textContent = 'Your match appears automatically when observation is complete.';
+        $('#matched-member-link-row').hidden = true;
         $('#open-partner-chat').hidden = true;
+        $('#matched-buddy-summary').textContent = 'Your match appears after observation is complete.';
+        $('#matched-buddy-profile-link').href = '#people';
+        $('#matched-buddy-profile-link').textContent = 'Browse profiles →';
     }
     renderPartnerChat();
 }
@@ -450,9 +660,12 @@ function renderPartnerChat() {
     const peer = state.observation.matchedPeer;
     const available = Boolean(peer && state.observation.matchedAt);
     $('#partner-chat-label').textContent = available ? 'DEMO PARTNER' : 'MATCH PENDING';
-    $('#partner-avatar').textContent = peer?.name?.charAt(0) || '?';
+    $('#partner-avatar-link').textContent = peer?.name?.charAt(0) || '?';
     $('#partner-name').textContent = available ? peer.name : 'Waiting for your focus match';
-    $('#partner-presence').textContent = available ? `${peer.rating}/10 focus · shared study rhythm` : 'Your conversation will appear here when matching is ready.';
+    $('#partner-presence').textContent = available ? `${peer.focus}/10 focus · ${peer.level} · shared study rhythm` : 'Your conversation will appear here when matching is ready.';
+    const profileHref = available ? `#profile/${peer.id}` : '#people';
+    $('#partner-avatar-link').href = profileHref;
+    $('#partner-name-link').href = profileHref;
     $('#partner-connection-label').textContent = available ? 'Demo match' : 'Not connected';
     $('.demo-connection').classList.toggle('connected', available);
     $('#partner-chat-input').disabled = !available;
@@ -594,7 +807,13 @@ function startTimer() {
         markActivity();
     }
     timerHandle = setInterval(() => {
-        if (state.timerKind === 'work' && document.visibilityState === 'visible') state.observation.focusSeconds += 1;
+        if (state.timerKind === 'work' && document.visibilityState === 'visible') {
+            state.observation.focusSeconds += 1;
+            if (state.mode === 'locked') {
+                const today = localDateString(new Date());
+                state.focusSecondsByDay[today] = (Number(state.focusSecondsByDay[today]) || 0) + 1;
+            }
+        }
         if (state.timerRemaining > 0) state.timerRemaining -= 1;
         if (state.timerRemaining <= 0) finishTimerPhase();
         saveState();
@@ -721,6 +940,9 @@ async function refreshIntegrationStatus() {
         $('#gemini-connection-status').textContent = status.gemini_configured ? `Key saved · ${status.gemini_model}` : 'Not connected';
         $('#disconnect-canvas').hidden = !status.canvas_configured;
         $('#disconnect-gemini').hidden = !status.gemini_configured;
+        $('#canvas-url-config').hidden = Boolean(status.preview_mode);
+        $('#phone-preview-import-link').hidden = !status.preview_mode;
+        if (status.preview_mode) $('#canvas-connection-status').textContent = 'Phone preview · import an .ics file from Schedule';
         if (status.gemini_configured) $('#gemini-model-input').value = status.gemini_model;
         note.textContent = status.gemini_configured
             ? `Study questions are sent to Google Gemini (${status.gemini_model}) through the local backend.`
@@ -772,6 +994,95 @@ async function updateIntegrations(payload) {
     }
 }
 
+function parseCanvasIcs(text) {
+    const unfolded = text.replace(/\r?\n[ \t]/g, '');
+    const lines = unfolded.split(/\r?\n/);
+    const assignmentTerms = /assignment|homework|quiz|exam|test|project|paper|due|discussion|lab|midterm|final/i;
+    const events = [];
+    let current = null;
+    for (const line of lines) {
+        if (line === 'BEGIN:VEVENT') {
+            current = {};
+            continue;
+        }
+        if (line === 'END:VEVENT') {
+            if (current) {
+                const summary = current.summary || 'Canvas assignment';
+                if (current.start && assignmentTerms.test(summary)) {
+                    const due = `${current.start.slice(0, 4)}-${current.start.slice(4, 6)}-${current.start.slice(6, 8)}`;
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(due) && dayDifference(due) >= -7) {
+                        const title = summary.replace(/^(assignment|quiz|event|calendar event)\s*:\s*/i, '').trim();
+                        events.push({ uid: current.uid || `${summary}-${due}`, title: title || summary, due });
+                    }
+                }
+            }
+            current = null;
+            continue;
+        }
+        if (!current) continue;
+        const separator = line.indexOf(':');
+        if (separator < 0) continue;
+        const property = line.slice(0, separator).split(';')[0].toUpperCase();
+        const value = line.slice(separator + 1);
+        const decoded = value.replace(/\\n/gi, ' ').replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\\\/g, '\\');
+        if (property === 'SUMMARY') current.summary = decoded;
+        else if (property === 'UID') current.uid = decoded;
+        else if (property === 'DTSTART') current.start = value.replace(/[^0-9T]/g, '').slice(0, 8);
+    }
+    return events.sort((first, second) => first.due.localeCompare(second.due));
+}
+
+function importCanvasEvents(events, note = $('#calendar-note')) {
+    let imported = 0;
+    for (const event of events) {
+        const id = `canvas-${encodeURIComponent(event.uid)}`;
+        const existing = state.tasks.find((task) => task.id === id);
+        const leadDays = Math.min(3, Math.max(1, Math.ceil(Math.max(0, dayDifference(event.due)) / 3)));
+        const task = {
+            id,
+            source: 'canvas',
+            title: event.title,
+            subject: 'Canvas',
+            due: event.due,
+            targetDate: dateBefore(event.due, leadDays),
+            minutes: existing?.minutes || 30,
+            done: existing?.done || false
+        };
+        if (existing) Object.assign(existing, task);
+        else state.tasks.push(task);
+        imported += 1;
+    }
+    saveState();
+    renderAll();
+    note.hidden = false;
+    note.textContent = `Canvas import complete: ${imported} assignment${imported === 1 ? '' : 's'} found.`;
+    showToast(`Canvas import complete. ${imported} assignment${imported === 1 ? '' : 's'} imported.`);
+}
+
+async function importCanvasFile(file) {
+    const note = $('#calendar-note');
+    note.hidden = false;
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+        note.textContent = 'That calendar file is larger than the 4 MB import limit.';
+        return;
+    }
+    if (!file.name.toLowerCase().endsWith('.ics') && file.type !== 'text/calendar' && file.type !== 'application/ics') {
+        note.textContent = 'Choose a Canvas calendar file ending in .ics.';
+        return;
+    }
+    try {
+        const events = parseCanvasIcs(await file.text());
+        if (!events.length) {
+            note.textContent = 'No upcoming assignment events were found in that calendar file.';
+            return;
+        }
+        importCanvasEvents(events, note);
+    } catch {
+        note.textContent = 'Could not read that calendar file. Download the Canvas feed again and retry.';
+    }
+}
+
 async function syncCanvasAssignments() {
     const button = $('#calendar-connect');
     const note = $('#calendar-note');
@@ -780,6 +1091,11 @@ async function syncCanvasAssignments() {
     note.textContent = 'Checking Canvas connection…';
     try {
         const status = await apiRequest('/api/integrations/status');
+        if (status.preview_mode) {
+            note.textContent = 'Phone preview: use Import Canvas .ics to pick a calendar file from your phone.';
+            $('#schedule-view').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+        }
         if (!status.canvas_configured) {
             note.textContent = 'Canvas is not connected yet. Use the setup guide to add your calendar feed.';
             openIntegrationsDialog();
@@ -787,29 +1103,8 @@ async function syncCanvasAssignments() {
         }
         note.textContent = 'Importing Canvas assignments…';
         const result = await apiRequest('/api/canvas/events');
-        let imported = 0;
-        for (const event of result.events) {
-            const id = `canvas-${encodeURIComponent(event.uid)}`;
-            const existing = state.tasks.find((task) => task.id === id);
-            const leadDays = Math.min(3, Math.max(1, Math.ceil(Math.max(0, dayDifference(event.due)) / 3)));
-            const task = {
-                id,
-                source: 'canvas',
-                title: event.title,
-                subject: 'Canvas',
-                due: event.due,
-                targetDate: dateBefore(event.due, leadDays),
-                minutes: existing?.minutes || 30,
-                done: existing?.done || false
-            };
-            if (existing) Object.assign(existing, task);
-            else state.tasks.push(task);
-            imported += 1;
-        }
-        saveState();
-        renderAll();
-        note.textContent = `Canvas synced: ${imported} assignment${imported === 1 ? '' : 's'} found.`;
-        showToast(`Canvas sync complete. ${imported} assignment${imported === 1 ? '' : 's'} imported.`);
+        importCanvasEvents(result.events, note);
+        note.textContent = `Canvas synced: ${result.count} assignment${result.count === 1 ? '' : 's'} found.`;
     } catch (error) {
         note.textContent = error.message;
     } finally {
@@ -837,7 +1132,13 @@ $('#onboarding-form').addEventListener('submit', (event) => {
 });
 
 $('#add-task').addEventListener('click', addTask);
+$('#focus-add-task').addEventListener('click', addTask);
 $('#calendar-connect').addEventListener('click', syncCanvasAssignments);
+$('#import-canvas-file-button').addEventListener('click', () => $('#canvas-ics-file').click());
+$('#canvas-ics-file').addEventListener('change', async (event) => {
+    await importCanvasFile(event.target.files?.[0]);
+    event.target.value = '';
+});
 $('#open-integrations').addEventListener('click', openIntegrationsDialog);
 $('#close-integrations').addEventListener('click', closeIntegrationsDialog);
 $('#integrations-modal').addEventListener('click', (event) => {
@@ -870,7 +1171,7 @@ $('#timer-toggle').addEventListener('click', startTimer);
 $('#timer-reset').addEventListener('click', resetTimer);
 document.querySelectorAll('.preset').forEach((button) => button.addEventListener('click', () => choosePreset(button)));
 $('#start-focus').addEventListener('click', () => {
-    $('#focus').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('#focus-banner').scrollIntoView({ behavior: 'smooth', block: 'center' });
     if (!timerHandle && state.timerKind === 'break') {
         state.timerKind = 'work';
         state.timerRemaining = state.workMinutes * 60;
@@ -894,7 +1195,6 @@ $('#day-reward-button').addEventListener('click', () => {
     showToast('Daily plan complete. Your distraction-app reward is unlocked for today.');
 });
 $('#edit-preferences').addEventListener('click', () => openOnboarding(1));
-$('#open-settings').addEventListener('click', () => openOnboarding(1));
 $('#top-settings').addEventListener('click', () => openOnboarding(1));
 $('#chat-form').addEventListener('submit', (event) => {
     event.preventDefault();
@@ -923,11 +1223,77 @@ $('#chat-form').addEventListener('submit', (event) => {
 });
 $('#partner-chat-form').addEventListener('submit', sendPartnerMessage);
 
-document.querySelectorAll('.nav-link').forEach((link) => {
-    link.addEventListener('click', () => {
-        document.querySelectorAll('.nav-link').forEach((item) => item.classList.remove('active'));
-        link.classList.add('active');
+const viewLabels = {
+    focus: 'FOCUS TIME',
+    schedule: 'MY SCHEDULE',
+    study: 'STUDY BUDDY',
+    people: 'PEOPLE',
+    chat: 'PARTNER CHAT',
+    profile: 'MY PROFILE',
+    rewards: 'YOUR REWARDS'
+};
+
+function setActiveView(view) {
+    const activeView = viewLabels[view] ? view : 'focus';
+    document.querySelectorAll('.app-view').forEach((section) => {
+        section.hidden = section.dataset.view !== activeView;
     });
+    document.querySelectorAll('.nav-link').forEach((link) => {
+        const active = link.dataset.view === activeView;
+        link.classList.toggle('active', active);
+        if (active) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
+    });
+    const today = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date()).toUpperCase();
+    $('.breadcrumb').innerHTML = `${today}<span class="top-dot"> · </span>${viewLabels[activeView]}`;
+    if (activeView === 'people') renderLeaderboard();
+    if (activeView === 'profile') renderSelectedProfile();
+}
+
+function viewFromHash() {
+    const route = window.location.hash.slice(1);
+    if (route === 'schedule') return 'schedule';
+    if (['study', 'assistant'].includes(route)) return 'study';
+    if (route === 'chat' || route === 'partner-chat') return 'chat';
+    if (route === 'people') return 'people';
+    if (route === 'profile' || route.startsWith('profile/')) return 'profile';
+    if (route === 'rewards') return 'rewards';
+    return 'focus';
+}
+
+document.querySelectorAll('.nav-link').forEach((link) => {
+    link.addEventListener('click', () => setActiveView(link.dataset.view));
+});
+window.addEventListener('hashchange', () => setActiveView(viewFromHash()));
+
+$('#people-search').addEventListener('input', renderLeaderboard);
+$('#leaderboard-sort').addEventListener('change', renderLeaderboard);
+document.querySelectorAll('.period-tab').forEach((button) => {
+    button.addEventListener('click', () => {
+        leaderboardPeriod = button.dataset.period;
+        document.querySelectorAll('.period-tab').forEach((tab) => {
+            const selected = tab === button;
+            tab.classList.toggle('active', selected);
+            tab.setAttribute('aria-selected', String(selected));
+        });
+        renderLeaderboard();
+    });
+});
+
+document.querySelectorAll('[id^="privacy-"]').forEach((input) => {
+    input.addEventListener('change', () => {
+        const field = input.id.slice('privacy-'.length);
+        state.profilePrivacy[field] = input.checked;
+        saveState();
+        renderSelectedProfile();
+        renderLeaderboard();
+    });
+});
+$('#profile-study-level').addEventListener('change', () => {
+    state.studyLevel = $('#profile-study-level').value;
+    saveState();
+    renderSelectedProfile();
+    renderLeaderboard();
 });
 
 function initialize() {
@@ -961,8 +1327,7 @@ function initialize() {
             renderLock();
         }, state.unlockedUntil - Date.now());
     }
-    const today = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date()).toUpperCase();
-    $('.breadcrumb').innerHTML = `${today}<span class="top-dot"> · </span>YOUR STUDY SPACE`;
+    setActiveView(viewFromHash());
     const observationDelay = Math.max(0, observationDeadline() - Date.now());
     setTimeout(() => {
         finishObservationIfReady();

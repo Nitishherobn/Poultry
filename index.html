@@ -1,170 +1,494 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f4f2ec">
-  <title>Daymark — make room for focus</title>
-  <link rel="stylesheet" href="app.css">
-  <link rel="stylesheet" href="app-details.css">
-  <script src="app.js" defer></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff">
+    <title>Daymark — make room for focus</title>
+    <link rel="stylesheet" href="app.css?v=orange-theme">
+    <link rel="stylesheet" href="app-details.css?v=orange-theme">
+    <script src="app.js?v=canvas-file-import-v2-20261003" defer></script>
 </head>
+
 <body>
-  <div class="app-shell">
-    <aside class="sidebar" aria-label="Main navigation">
-      <a class="brand" href="#today" aria-label="Daymark home"><span class="brand-mark">d.</span><span>daymark</span></a>
-      <div class="side-label">YOUR SPACE</div>
-      <nav class="nav-list">
-        <a class="nav-link active" href="#today"><span class="nav-icon">⌂</span>Today</a>
-        <a class="nav-link" href="#schedule"><span class="nav-icon">▦</span>My schedule</a>
-        <a class="nav-link" href="#focus"><span class="nav-icon">◷</span>Focus room</a>
-        <a class="nav-link" href="#study"><span class="nav-icon">✳</span>Study buddy</a>
-      </nav>
-      <div class="sidebar-bottom">
-        <div class="streak-mini"><span class="streak-flower">✳</span><span><b id="sidebar-streak">0 day streak</b><small>Little by little adds up.</small></span></div>
-        <button class="profile-button" id="open-settings"><span class="avatar">S</span><span><b id="profile-name">Student</b><small>Personal space</small></span><span class="more">···</span></button>
-      </div>
-    </aside>
-
-    <main id="today" class="main-content">
-      <header class="topbar">
-        <div class="breadcrumb">MONDAY, OCTOBER 5 <span class="top-dot">·</span> YOUR STUDY SPACE</div>
-        <div class="top-actions"><span class="mode-pill" id="mode-indicator"><i></i> Casual mode</span><button class="text-button integrations-open" id="open-integrations">Connect tools</button><button class="icon-button" id="top-settings" aria-label="Open settings" title="Settings">⚙</button></div>
-      </header>
-
-      <section class="welcome-row">
-        <div><p class="eyebrow">A LITTLE FOCUS GOES A LONG WAY</p><h1 id="welcome-title">Good morning, Sam<span>.</span></h1><p class="welcome-subtitle">One thing at a time. You have got this.</p></div>
-        <div class="date-stamp"><span class="date-day">MON</span><strong>05</strong><span>OCT</span></div>
-      </section>
-
-      <section class="focus-banner" id="focus">
-        <div class="banner-copy"><span class="banner-kicker"><span class="live-dot"></span> YOUR NEXT BEST STEP</span><h2 id="next-task-title">Start with the thing that matters.</h2><p id="next-task-description">Your plan gets quieter when you need it to.</p></div>
-        <button class="banner-button" id="start-focus">Start a focus session <span>→</span></button>
-        <span class="banner-sun" aria-hidden="true">✳</span>
-      </section>
-
-      <div class="dashboard-grid">
-        <div class="left-column">
-          <section class="section-block" id="schedule">
-            <div class="section-heading"><div><p class="eyebrow">THE PLAN, NOT THE PRESSURE</p><h2>Today's focus</h2></div><button class="text-button" id="calendar-connect">↻ Sync Canvas</button></div>
-            <div class="calendar-note" id="calendar-note" hidden aria-live="polite"></div>
-            <div class="task-list" id="task-list" aria-live="polite"></div>
-            <details class="more-tasks" id="more-tasks" hidden><summary id="more-tasks-label">Other work</summary><div class="task-list" id="later-task-list" aria-live="polite"></div></details>
-            <button class="add-task-button" id="add-task"><span>＋</span> Add a task</button>
-          </section>
-
-          <section class="section-block timer-section">
-            <div class="section-heading"><div><p class="eyebrow">WORK WITH YOUR BRAIN</p><h2>Focus rhythm</h2></div><span class="soft-tag" id="timer-mode-label">25 min focus</span></div>
-            <div class="timer-card">
-              <div class="timer-visual"><div class="timer-ring"><span class="timer-caption" id="timer-caption">FOCUS</span><strong id="timer-display">25:00</strong><span class="timer-cycle" id="timer-cycle">SESSION 1 OF 4</span></div></div>
-              <div class="timer-controls"><p id="timer-message">A small, protected pocket of time.</p><div class="timer-buttons"><button class="primary-button" id="timer-toggle">▶ Start focus</button><button class="round-button" id="timer-reset" aria-label="Reset timer" title="Reset timer">↺</button></div><div class="timer-presets"><button class="preset active" data-work="25" data-break="5">25 / 5</button><button class="preset" data-work="50" data-break="10">50 / 10</button><span>min work / break</span></div></div>
+    <div class="app-shell">
+        <aside class="sidebar" aria-label="Main navigation">
+            <a class="brand" href="#focus" aria-label="Daymark home"><span
+                    class="brand-mark">d.</span><span>daymark</span></a>
+            <div class="side-label">YOUR SPACE</div>
+            <nav class="nav-list">
+                <a class="nav-link active" href="#focus" data-view="focus"><span class="nav-icon">◷</span>Focus</a>
+                <a class="nav-link" href="#schedule" data-view="schedule"><span class="nav-icon">▦</span>Schedule</a>
+                <a class="nav-link" href="#study" data-view="study"><span class="nav-icon">✳</span>Study buddy</a>
+                <a class="nav-link" href="#people" data-view="people"><span class="nav-icon">♧</span>People</a>
+                <a class="nav-link" href="#chat" data-view="chat"><span class="nav-icon">▤</span>Partner chat</a>
+                <a class="nav-link" href="#rewards" data-view="rewards"><span class="nav-icon">✦</span>Rewards</a>
+            </nav>
+            <div class="sidebar-bottom">
+                <div class="streak-mini"><span class="streak-flower">✳</span><span><b id="sidebar-streak">0 day
+                            streak</b><small>Little by little adds up.</small></span></div>
+                <a class="profile-button" id="open-profile-page" href="#profile"><span class="avatar">S</span><span><b
+                            id="profile-name">Student</b><small>My profile</small></span><span
+                        class="more">···</span></a>
             </div>
-            <p class="break-lock-note" id="break-lock-note" hidden>Break time. Your distraction apps stay locked until focus resumes.</p>
-          </section>
-        </div>
-
-        <aside class="right-column">
-          <section class="side-card attention-card" id="study">
-            <div class="card-heading"><div><p class="eyebrow">FIND YOUR PEOPLE</p><h2>Focus check-in</h2></div><span class="attention-spark">✳</span></div>
-            <p class="card-copy">Your rating is calculated from focus sessions, work completed, and time away from this tab.</p>
-            <div class="attention-value"><strong id="attention-value">5</strong><span>/ 10</span><span class="attention-mood" id="attention-mood">Learning your rhythm</span></div>
-            <div class="observation-progress" role="progressbar" aria-label="Observation period" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="observation-progress-fill"></span></div>
-            <p class="observation-status" id="observation-status" aria-live="polite">Collecting your first day of focus data.</p>
-            <div class="observation-metrics"><span><strong id="observed-minutes">0</strong>focus min</span><span><strong id="observed-sessions">0</strong>sessions</span><span><strong id="observed-tasks">0</strong>tasks done</span><span><strong id="observed-away">0</strong>tab exits</span></div>
-            <p class="match-result" id="match-result" aria-live="polite"></p>
-            <a class="partner-chat-link" id="open-partner-chat" href="#partner-chat" hidden>Open partner chat <span>→</span></a>
-          </section>
-
-          <section class="side-card reward-card">
-            <div class="card-heading"><div><p class="eyebrow">THE GOOD KIND OF PROGRESS</p><h2>Your little wins</h2></div><span class="reward-star">✳</span></div>
-            <div class="reward-total"><strong id="points-total">0</strong><span>focus points</span></div>
-            <div class="reward-progress"><div class="reward-progress-fill" id="reward-progress-fill"></div></div>
-            <div class="reward-foot"><span id="reward-progress-label">0 / 60 to your first reward</span><span>✳ <b id="reward-streak">0</b> day streak</span></div>
-            <div class="reward-lock-note" id="reward-lock-note">Rewards are part of Locked In mode.</div>
-          </section>
-
-          <section class="side-card app-lock-card">
-            <div class="card-heading"><div><p class="eyebrow">GUARD YOUR ATTENTION</p><h2>Distraction apps</h2></div><span class="lock-icon">⌑</span></div>
-            <div class="lock-state-row"><span class="lock-state-dot" id="lock-state-dot"></span><span id="lock-state-text">Casual mode · no app blocking</span></div>
-            <p class="card-copy lock-description">Locked In can help you stay away from chosen apps during focus. Browser app blocking is a preview only.</p>
-            <div class="unlock-controls"><label for="unlock-duration">Quick unlock</label><select id="unlock-duration" aria-label="Temporary unlock duration"><option value="5">5 minutes</option><option value="10">10 minutes</option><option value="15">15 minutes</option><option value="20">20 minutes</option></select></div>
-            <button class="outline-button" id="lock-action">Set up Locked In</button>
-            <button class="outline-button quick-unlock-button" id="quick-unlock-button" type="button">Unlock briefly</button>
-            <button class="day-reward-button" id="day-reward-button" type="button" hidden>Unlock apps for today</button>
-            <p class="unlock-status" id="unlock-status" aria-live="polite"></p>
-          </section>
         </aside>
-      </div>
 
-      <section class="section-block partner-chat-section" id="partner-chat">
-        <div class="section-heading"><div><p class="eyebrow">STUDY SIDE BY SIDE</p><h2>Partner chat</h2></div><span class="demo-chat-label" id="partner-chat-label">MATCH PENDING</span></div>
-        <div class="partner-chat-card">
-          <header class="partner-chat-header"><span class="partner-avatar" id="partner-avatar">?</span><span class="partner-identity"><strong id="partner-name">Waiting for your focus match</strong><small id="partner-presence">Your conversation will appear here when matching is ready.</small></span><span class="demo-connection"><i></i><span id="partner-connection-label">Not connected</span></span></header>
-          <div class="partner-chat-messages" id="partner-chat-messages" aria-live="polite"><div class="partner-chat-empty">Once your observation period ends, your matched study partner will show up here.</div></div>
-          <form class="chat-form partner-chat-form" id="partner-chat-form"><label class="sr-only" for="partner-chat-input">Message your study partner</label><input id="partner-chat-input" maxlength="500" placeholder="Write a message…" autocomplete="off" required disabled><button type="submit" aria-label="Send partner message" disabled>↑</button></form>
-          <p class="prototype-note">Messages are stored in this browser. Demo partner replies are simulated; nothing is sent to another person.</p>
-        </div>
-      </section>
+        <main id="today" class="main-content">
+            <header class="topbar">
+                <div class="breadcrumb">MONDAY, OCTOBER 5 <span class="top-dot">·</span> YOUR STUDY SPACE</div>
+                <div class="top-actions"><span class="mode-pill" id="mode-indicator"><i></i> Casual mode</span><button
+                        class="text-button integrations-open" id="open-integrations">Connect tools</button><a
+                        class="avatar top-avatar" id="top-profile" href="#profile" aria-label="Open profile" title="My profile">S</a><button
+                        class="icon-button" id="top-settings" aria-label="Open settings" title="Settings">⚙</button>
+                </div>
+            </header>
 
-      <section class="section-block assistant-section" id="assistant">
-        <div class="section-heading"><div><p class="eyebrow">A THOUGHTFUL STUDY COMPANION</p><h2>Ask your study buddy</h2></div><span class="ai-label" id="ai-service-label">CHECKING GEMINI</span></div>
-        <div class="chat-window" id="chat-window" aria-live="polite"><div class="chat-message assistant-message"><span class="chat-avatar">✳</span><p>Hi! What are you working through? I can help break a question into smaller steps.</p></div></div>
-        <form class="chat-form" id="chat-form"><label class="sr-only" for="chat-input">Ask a study question</label><input id="chat-input" placeholder="Ask a question or share what feels stuck…" autocomplete="off" required><button type="submit" aria-label="Send message">↑</button></form>
-        <p class="prototype-note" id="ai-service-note">Checking secure Gemini connection…</p>
-      </section>
-      <footer class="page-footer"><span>DAYMARK <span class="footer-dot">✳</span> YOUR TIME, YOURS AGAIN.</span><button id="edit-preferences">Edit your preferences</button></footer>
-    </main>
-  </div>
+            <section class="app-view" id="focus-view" data-view="focus">
+                <section class="welcome-row">
+                    <div>
+                        <p class="eyebrow">A LITTLE FOCUS GOES A LONG WAY</p>
+                        <h1 id="welcome-title">Good morning, Sam<span>.</span></h1>
+                        <p class="welcome-subtitle">One thing at a time. You have got this.</p>
+                    </div>
+                    <div class="date-stamp"><span class="date-day">MON</span><strong>05</strong><span>OCT</span></div>
+                </section>
 
-  <div class="modal-backdrop" id="integrations-modal" role="dialog" aria-modal="true" aria-labelledby="integrations-title" hidden>
-    <section class="integration-panel">
-      <header class="integration-header"><div><p class="eyebrow">PRIVATE CONNECTIONS</p><h1 id="integrations-title">Connect your study tools</h1></div><button class="icon-button" id="close-integrations" type="button" aria-label="Close integrations" title="Close">×</button></header>
-      <p class="integration-intro">Follow the quick steps, then paste your credentials below. They are saved on this computer in the ignored <code>.env</code> file, not in browser storage.</p>
-      <div class="integration-guides">
-        <article class="integration-guide">
-          <div class="guide-heading"><span class="guide-icon">▦</span><div><h2>Canvas assignments</h2><p id="canvas-connection-status">Checking connection…</p></div></div>
-          <ol><li>In Canvas, open <strong>Calendar</strong>.</li><li>Choose <strong>Calendar Feed</strong> from the calendar sidebar and copy its full URL.</li><li>Paste the URL below. It is a private credential; regenerate the previously shared feed URL first.</li></ol>
-          <label class="integration-label" for="canvas-feed-input">Canvas calendar feed URL</label>
-          <input class="integration-input" id="canvas-feed-input" type="url" inputmode="url" autocomplete="off" placeholder="https://canvas.yourschool.edu/feeds/calendars/…">
-          <button class="integration-clear" id="disconnect-canvas" type="button" hidden>Disconnect Canvas</button>
-        </article>
-        <article class="integration-guide">
-          <div class="guide-heading"><span class="guide-icon gemini-icon">✳</span><div><h2>Gemini study assistant</h2><p id="gemini-connection-status">Checking connection…</p></div></div>
-          <ol><li><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">Open Google AI Studio</a> and create an API key.</li><li>Paste the key below. Your study questions and current task titles will be sent to Google for answers.</li><li>Leave the model as <code>gemini-2.5-flash</code> unless you want to use another supported model.</li></ol>
-          <label class="integration-label" for="gemini-key-input">Gemini API key</label>
-          <div class="secret-input-row"><input class="integration-input" id="gemini-key-input" type="password" autocomplete="new-password" placeholder="Paste API key; existing key is never shown"><button id="toggle-gemini-key" class="icon-button" type="button" aria-label="Show API key" title="Show API key">◉</button></div>
-          <label class="integration-label model-label" for="gemini-model-input">Model</label>
-          <input class="integration-input" id="gemini-model-input" value="gemini-2.5-flash" maxlength="80" autocomplete="off">
-          <button class="integration-clear" id="disconnect-gemini" type="button" hidden>Remove Gemini key</button>
-        </article>
-      </div>
-      <div class="integration-footer"><p id="integration-feedback" role="status" aria-live="polite">Existing secrets are never sent back to this page.</p><button class="primary-button" id="save-integrations" type="button">Save connections</button></div>
-    </section>
-  </div>
+                <section class="focus-banner" id="focus-banner">
+                    <div class="banner-copy"><span class="banner-kicker"><span class="live-dot"></span> YOUR NEXT BEST
+                            STEP</span>
+                        <h2 id="next-task-title">Start with the thing that matters.</h2>
+                        <p id="next-task-description">Your plan gets quieter when you need it to.</p>
+                    </div>
+                    <button class="banner-button" id="start-focus">Start a focus session <span>→</span></button>
+                    <span class="banner-sun" aria-hidden="true">✳</span>
+                </section>
 
-  <div class="modal-backdrop" id="onboarding" role="dialog" aria-modal="true" aria-labelledby="onboarding-title" hidden>
-    <div class="onboarding-panel">
-      <div class="onboarding-brand"><span class="brand-mark">d.</span><span>daymark</span><span class="step-count" id="step-count">01 / 02</span></div>
-      <div class="onboarding-progress"><span id="onboarding-progress"></span></div>
-      <form id="onboarding-form">
-        <section class="onboarding-step" data-step="1">
-          <p class="eyebrow">FIRST, A LITTLE ABOUT YOU</p><h1 id="onboarding-title">What makes you<br>curious?</h1><p class="onboarding-intro">We'll bring the work you care about to the top of your day.</p>
-          <label class="field-label" for="name-input">What should we call you?</label><input class="text-input" id="name-input" maxlength="24" placeholder="Your name" autocomplete="given-name">
-          <fieldset class="choice-group"><legend class="field-label">What do you love exploring?</legend><div class="chip-grid" id="interest-options"><label class="choice-chip"><input type="checkbox" value="Creativity"><span>✳ Creativity</span></label><label class="choice-chip"><input type="checkbox" value="Technology"><span>⌘ Technology</span></label><label class="choice-chip"><input type="checkbox" value="People & culture"><span>◉ People & culture</span></label><label class="choice-chip"><input type="checkbox" value="Nature"><span>❋ Nature</span></label><label class="choice-chip"><input type="checkbox" value="Business"><span>↗ Business</span></label><label class="choice-chip"><input type="checkbox" value="Making things"><span>✂ Making things</span></label></div></fieldset>
-          <label class="field-label" for="subjects-input">Favorite subjects <span class="optional-label">(optional)</span></label><input class="text-input" id="subjects-input" placeholder="e.g. Biology, design, history">
-          <button class="onboarding-next" type="button" id="to-mode">Choose your pace <span>→</span></button>
-        </section>
-        <section class="onboarding-step" data-step="2" hidden>
-          <p class="eyebrow">YOUR SPACE, YOUR RULES</p><h1>How do you want<br>to show up?</h1><p class="onboarding-intro">You can change this any time. Start where you are.</p>
-          <div class="mode-choices"><label class="mode-choice"><input type="radio" name="mode" value="locked" checked><span class="mode-choice-top"><span class="mode-symbol">▣</span><span class="mode-select">○</span></span><strong>Locked In</strong><small>Focus sessions, gentle app limits, and rewards for showing up.</small><span class="mode-detail">Requires device-level permissions for real app blocking.</span></label><label class="mode-choice"><input type="radio" name="mode" value="casual"><span class="mode-choice-top"><span class="mode-symbol casual-symbol">◷</span><span class="mode-select">○</span></span><strong>Casual</strong><small>A calm plan and focus timer, with no app limits.</small><span class="mode-detail">Rewards are available in Locked In mode.</span></label></div>
-          <div class="permission-note"><span>ⓘ</span><p>Real blocking needs a supported mobile app and your permission. This browser preview cannot block other apps.</p></div>
-          <button class="onboarding-next" type="submit" id="finish-onboarding">Make my plan <span>→</span></button><button class="back-button" type="button" id="back-survey">← Back to your interests</button>
-        </section>
-      </form>
-      <p class="onboarding-privacy">Your preferences stay in this browser.</p>
+                <section class="section-block timer-section focus-timer-section">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">WORK WITH YOUR BRAIN</p>
+                            <h2>Focus rhythm</h2>
+                        </div><span class="soft-tag" id="timer-mode-label">25 min focus</span>
+                    </div>
+                    <div class="timer-card">
+                        <div class="timer-visual">
+                            <div class="timer-ring"><span class="timer-caption" id="timer-caption">FOCUS</span><strong
+                                    id="timer-display">25:00</strong><span class="timer-cycle" id="timer-cycle">SESSION
+                                    1 OF 4</span></div>
+                        </div>
+                        <div class="timer-controls">
+                            <p id="timer-message">A small, protected pocket of time.</p>
+                            <div class="timer-buttons"><button class="primary-button" id="timer-toggle">▶ Start
+                                    focus</button><button class="round-button" id="timer-reset" aria-label="Reset timer"
+                                    title="Reset timer">↺</button></div>
+                            <div class="timer-presets"><button class="preset active" data-work="25" data-break="5">25 /
+                                    5</button><button class="preset" data-work="50" data-break="10">50 /
+                                    10</button><span>min work / break</span></div>
+                        </div>
+                    </div>
+                    <p class="break-lock-note" id="break-lock-note" hidden>Break time. Your distraction apps stay locked
+                        until focus resumes.</p>
+                </section>
+
+                <section class="section-block focus-assignments">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">WHEN YOU'RE READY</p>
+                            <h2>Today's assignments</h2>
+                        </div><a class="text-button" href="#schedule">Full schedule →</a>
+                    </div>
+                    <div class="calendar-note" id="focus-calendar-note" hidden aria-live="polite"></div>
+                    <div class="task-list" id="focus-task-list" aria-live="polite"></div>
+                    <details class="more-tasks" id="focus-more-tasks" hidden>
+                        <summary id="focus-more-tasks-label">Other work</summary>
+                        <div class="task-list" id="focus-later-task-list" aria-live="polite"></div>
+                    </details>
+                    <button class="add-task-button" id="focus-add-task"><span>＋</span> Add a task</button>
+                </section>
+            </section>
+
+            <section class="app-view" id="schedule-view" data-view="schedule" hidden>
+                <section class="view-heading">
+                    <p class="eyebrow">THE PLAN, NOT THE PRESSURE</p>
+                    <h1>My schedule</h1>
+                    <p>Deadlines stay real. Your plan makes room to get ahead.</p>
+                </section>
+                <section class="section-block schedule-page-section" id="schedule">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">UPCOMING WORK</p>
+                            <h2>Assignments & due dates</h2>
+                        </div>
+                        <div class="schedule-actions"><button class="text-button" id="import-canvas-file-button"
+                                type="button">↑ Import Canvas .ics</button><button class="text-button"
+                                id="calendar-connect">↻ Sync Canvas</button><input id="canvas-ics-file" type="file"
+                                accept=".ics,text/calendar,application/ics" hidden></div>
+                    </div>
+                    <div class="calendar-note" id="calendar-note" hidden aria-live="polite"></div>
+                    <p class="phone-import-note">On your phone: open the Canvas Calendar Feed link in Safari or Chrome,
+                        save/download the <code>.ics</code> file, then choose <strong>Import Canvas .ics</strong> and
+                        pick it from Files or Downloads.</p>
+                    <div class="task-list" id="task-list" aria-live="polite"></div>
+                    <details class="more-tasks" id="more-tasks" hidden>
+                        <summary id="more-tasks-label">Other work</summary>
+                        <div class="task-list" id="later-task-list" aria-live="polite"></div>
+                    </details>
+                    <button class="add-task-button" id="add-task"><span>＋</span> Add a task</button>
+                </section>
+            </section>
+
+            <section class="app-view" id="study-view" data-view="study" hidden>
+                <section class="view-heading">
+                    <p class="eyebrow">LEARN ALONGSIDE SOMEONE</p>
+                    <h1>Study buddy</h1>
+                    <p>Check your focus profile, message your match, or ask a study question.</p>
+                </section>
+                <section class="side-card attention-card study-profile" id="study">
+                    <div class="card-heading">
+                        <div>
+                            <p class="eyebrow">FIND YOUR PEOPLE</p>
+                            <h2>Focus check-in</h2>
+                        </div><span class="attention-spark">✳</span>
+                    </div>
+                    <p class="card-copy">Your rating is calculated from focus sessions, work completed, and time away
+                        from this tab.</p>
+                    <div class="attention-value"><strong id="attention-value">5</strong><span>/ 10</span><span
+                            class="attention-mood" id="attention-mood">Learning your rhythm</span></div>
+                    <div class="observation-progress" role="progressbar" aria-label="Observation period"
+                        aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span
+                            id="observation-progress-fill"></span></div>
+                    <p class="observation-status" id="observation-status" aria-live="polite">Collecting your first day
+                        of focus data.</p>
+                    <div class="observation-metrics"><span><strong id="observed-minutes">0</strong>focus
+                            min</span><span><strong id="observed-sessions">0</strong>sessions</span><span><strong
+                                id="observed-tasks">0</strong>tasks done</span><span><strong
+                                id="observed-away">0</strong>tab exits</span></div>
+                    <p class="match-result" id="match-result" aria-live="polite"></p>
+                    <p class="matched-member-link-row" id="matched-member-link-row" hidden><a
+                            id="matched-member-name-link" href="#people"></a></p>
+                    <a class="partner-chat-link" id="open-partner-chat" href="#chat" hidden>Open partner chat
+                        <span>→</span></a>
+                </section>
+                <section class="matched-buddy-row">
+                    <div><span class="eyebrow">YOUR FOCUS MATCH</span>
+                        <p id="matched-buddy-summary">Your match appears after observation is complete.</p>
+                    </div><a id="matched-buddy-profile-link" href="#people">Browse profiles <span>→</span></a><a
+                        class="outline-button matched-chat-link" href="#chat">Open partner chat</a>
+                </section>
+
+                <section class="section-block assistant-section" id="assistant">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">A THOUGHTFUL STUDY COMPANION</p>
+                            <h2>Ask your study buddy</h2>
+                        </div><span class="ai-label" id="ai-service-label">CHECKING GEMINI</span>
+                    </div>
+                    <div class="chat-window" id="chat-window" aria-live="polite">
+                        <div class="chat-message assistant-message"><span class="chat-avatar">✳</span>
+                            <p>Hi! What are you working through? I can help break a question into smaller steps.</p>
+                        </div>
+                    </div>
+                    <form class="chat-form" id="chat-form"><label class="sr-only" for="chat-input">Ask a study
+                            question</label><input id="chat-input"
+                            placeholder="Ask a question or share what feels stuck…" autocomplete="off" required><button
+                            type="submit" aria-label="Send message">↑</button></form>
+                    <p class="prototype-note" id="ai-service-note">Checking secure Gemini connection…</p>
+                </section>
+            </section>
+
+            <section class="app-view" id="people-view" data-view="people" hidden>
+                <section class="view-heading">
+                    <p class="eyebrow">FIND YOUR STUDY PEOPLE</p>
+                    <h1>Focus leaderboard</h1>
+                    <p>Browse member profiles and compare study rhythms.</p>
+                </section>
+                <div class="people-toolbar"><label class="people-search"><span>⌕</span><span class="sr-only">Search
+                            people</span><input id="people-search" type="search"
+                            placeholder="Search names, subjects, or study level…" autocomplete="off"></label><label
+                        class="sort-select-label" for="leaderboard-sort">Sort by</label><select id="leaderboard-sort"
+                        class="leaderboard-sort">
+                        <option value="focus">Focus level</option>
+                        <option value="hours">Locked-in hours</option>
+                    </select></div>
+                <div class="period-tabs" role="tablist" aria-label="Leaderboard period"><button
+                        class="period-tab active" type="button" data-period="daily" role="tab"
+                        aria-selected="true">Daily</button><button class="period-tab" type="button" data-period="weekly"
+                        role="tab" aria-selected="false">Weekly</button><button class="period-tab" type="button"
+                        data-period="monthly" role="tab" aria-selected="false">Monthly</button><button
+                        class="period-tab" type="button" data-period="all" role="tab" aria-selected="false">All
+                        time</button></div>
+                <p class="leaderboard-caption" id="leaderboard-caption">Ranked by focus level · daily</p>
+                <div class="leaderboard-list" id="leaderboard-list" aria-live="polite"></div>
+                <p class="prototype-note people-demo-note">Sample member profiles are demo data. Your profile visibility
+                    choices apply locally in this prototype; real shared profiles need accounts and a backend.</p>
+            </section>
+
+            <section class="app-view" id="chat-view" data-view="chat" hidden>
+                <section class="view-heading">
+                    <p class="eyebrow">STUDY SIDE BY SIDE</p>
+                    <h1>Partner chat</h1>
+                    <p>Keep your study check-ins in one place.</p>
+                </section>
+                <section class="section-block partner-chat-section" id="partner-chat">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">YOUR MATCH</p>
+                            <h2>Conversation</h2>
+                        </div><span class="demo-chat-label" id="partner-chat-label">MATCH PENDING</span>
+                    </div>
+                    <div class="partner-chat-card">
+                        <header class="partner-chat-header"><a class="partner-avatar partner-avatar-link"
+                                id="partner-avatar-link" href="#people">?</a><span class="partner-identity"><a
+                                    class="partner-name-link" id="partner-name-link" href="#people"><strong
+                                        id="partner-name">Waiting for your focus match</strong></a><small
+                                    id="partner-presence">Your conversation will appear here when matching is
+                                    ready.</small></span><span class="demo-connection"><i></i><span
+                                    id="partner-connection-label">Not connected</span></span></header>
+                        <div class="partner-chat-messages" id="partner-chat-messages" aria-live="polite">
+                            <div class="partner-chat-empty">Once your observation period ends, your matched study
+                                partner will show up here.</div>
+                        </div>
+                        <form class="chat-form partner-chat-form" id="partner-chat-form"><label class="sr-only"
+                                for="partner-chat-input">Message your study partner</label><input
+                                id="partner-chat-input" maxlength="500" placeholder="Write a message…"
+                                autocomplete="off" required disabled><button type="submit"
+                                aria-label="Send partner message" disabled>↑</button></form>
+                        <p class="prototype-note">Messages are stored in this browser. Demo partner replies are
+                            simulated; nothing is sent to another person.</p>
+                    </div>
+                </section>
+            </section>
+
+            <section class="app-view" id="profile-view" data-view="profile" hidden>
+                <section class="view-heading">
+                    <p class="eyebrow">YOUR STUDY IDENTITY</p>
+                    <h1 id="profile-page-title">My profile</h1>
+                    <p id="profile-page-subtitle">Choose what other members can see.</p>
+                </section>
+                <section class="member-profile-card" id="member-profile-card"></section>
+                <section class="section-block profile-settings" id="profile-settings">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">YOUR VISIBILITY</p>
+                            <h2>Profile privacy</h2>
+                        </div>
+                    </div>
+                    <label class="privacy-row"><span><strong>Show me in people search</strong><small>When off, your
+                                profile is hidden from leaderboard and search results.</small></span><input
+                            id="privacy-discoverable" type="checkbox"></label>
+                    <label class="privacy-row"><span><strong>Focus level</strong><small>Share your observed focus
+                                rating.</small></span><input id="privacy-focus" type="checkbox"></label>
+                    <label class="privacy-row"><span><strong>Study level</strong><small>Share your education
+                                level.</small></span><input id="privacy-level" type="checkbox"></label>
+                    <label class="privacy-row"><span><strong>Locked-in hours</strong><small>Share focus time for
+                                leaderboard periods.</small></span><input id="privacy-hours" type="checkbox"></label>
+                    <label class="privacy-row"><span><strong>Interests & subjects</strong><small>Share your selected
+                                topics and subjects.</small></span><input id="privacy-interests"
+                            type="checkbox"></label>
+                    <label class="integration-label profile-level-label" for="profile-study-level">Study level</label>
+                    <select class="integration-input profile-level-select" id="profile-study-level">
+                        <option>Middle school</option>
+                        <option>High school</option>
+                        <option>Undergraduate</option>
+                        <option>Graduate student</option>
+                        <option>Postgraduate</option>
+                        <option>Independent learner</option>
+                    </select>
+                </section>
+            </section>
+            <section class="app-view" id="rewards-view" data-view="rewards" hidden>
+                <section class="view-heading">
+                    <p class="eyebrow">NOTICE WHAT YOU'VE DONE</p>
+                    <h1>Your rewards</h1>
+                    <p>Small steps count. Locked In progress earns points and unlocks your daily reward.</p>
+                </section>
+                <section class="side-card reward-card rewards-page-card">
+                    <div class="card-heading">
+                        <div>
+                            <p class="eyebrow">THE GOOD KIND OF PROGRESS</p>
+                            <h2>Your little wins</h2>
+                        </div><span class="reward-star">✳</span>
+                    </div>
+                    <div class="reward-total"><strong id="points-total">0</strong><span>focus points</span></div>
+                    <div class="reward-progress">
+                        <div class="reward-progress-fill" id="reward-progress-fill"></div>
+                    </div>
+                    <div class="reward-foot"><span id="reward-progress-label">0 / 60 to your first reward</span><span>✳
+                            <b id="reward-streak">0</b> day streak</span></div>
+                    <div class="reward-lock-note" id="reward-lock-note">Rewards are part of Locked In mode.</div>
+                </section>
+                <section class="side-card app-lock-card rewards-page-card">
+                    <div class="card-heading">
+                        <div>
+                            <p class="eyebrow">GUARD YOUR ATTENTION</p>
+                            <h2>Distraction apps</h2>
+                        </div><span class="lock-icon">⌑</span>
+                    </div>
+                    <div class="lock-state-row"><span class="lock-state-dot" id="lock-state-dot"></span><span
+                            id="lock-state-text">Casual mode · no app blocking</span></div>
+                    <p class="card-copy lock-description">Locked In can help you stay away from chosen apps during
+                        focus. Browser app blocking is a preview only.</p>
+                    <div class="unlock-controls"><label for="unlock-duration">Quick unlock</label><select
+                            id="unlock-duration" aria-label="Temporary unlock duration">
+                            <option value="5">5 minutes</option>
+                            <option value="10">10 minutes</option>
+                            <option value="15">15 minutes</option>
+                            <option value="20">20 minutes</option>
+                        </select></div>
+                    <button class="outline-button" id="lock-action">Set up Locked In</button>
+                    <button class="outline-button quick-unlock-button" id="quick-unlock-button" type="button">Unlock
+                        briefly</button>
+                    <button class="day-reward-button" id="day-reward-button" type="button" hidden>Unlock apps for
+                        today</button>
+                    <p class="unlock-status" id="unlock-status" aria-live="polite"></p>
+                </section>
+            </section>
+
+            <footer class="page-footer"><span>DAYMARK <span class="footer-dot">✳</span> YOUR TIME, YOURS
+                    AGAIN.</span><button id="edit-preferences">Edit your preferences</button></footer>
+        </main>
     </div>
-  </div>
 
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="modal-backdrop" id="integrations-modal" role="dialog" aria-modal="true"
+        aria-labelledby="integrations-title" hidden>
+        <section class="integration-panel">
+            <header class="integration-header">
+                <div>
+                    <p class="eyebrow">PRIVATE CONNECTIONS</p>
+                    <h1 id="integrations-title">Connect your study tools</h1>
+                </div><button class="icon-button" id="close-integrations" type="button" aria-label="Close integrations"
+                    title="Close">×</button>
+            </header>
+            <p class="integration-intro">Follow the quick steps, then paste your credentials below. They are saved on
+                this computer in the ignored <code>.env</code> file, not in browser storage.</p>
+            <div class="integration-guides">
+                <article class="integration-guide">
+                    <div class="guide-heading"><span class="guide-icon">▦</span>
+                        <div>
+                            <h2>Canvas assignments</h2>
+                            <p id="canvas-connection-status">Checking connection…</p>
+                        </div>
+                    </div>
+                    <p class="phone-guide-note">Do this on your phone. The Canvas Student app may not show the private
+                        Calendar Feed link, so use your phone's browser for these steps.</p>
+                    <ol>
+                        <li>Open <strong>Safari</strong> on iPhone or <strong>Chrome</strong> on Android, sign in to
+                            your school's Canvas site, and open <strong>Calendar</strong>.</li>
+                        <li>If the feed option is missing, request the desktop site: in iPhone Safari tap <strong>aA →
+                                Request Desktop Website</strong>; in Android Chrome tap <strong>⋮ → Desktop
+                                site</strong>.</li>
+                        <li>Tap <strong>Calendar Feed</strong>. If Canvas opens the feed, save/download the
+                            <code>.ics</code> file: use <strong>Share → Save to Files</strong> on iPhone or
+                            <strong>Download</strong> on Android.</li>
+                        <li>Return to Daymark and open <strong>Schedule → Import Canvas .ics</strong>. Pick the file
+                            from Files or Downloads. The calendar is parsed on your phone.</li>
+                    </ol>
+                    <div id="canvas-url-config"><label class="integration-label" for="canvas-feed-input">Canvas calendar
+                            feed URL (local computer setup)</label>
+                        <input class="integration-input" id="canvas-feed-input" type="url" inputmode="url"
+                            autocomplete="off" placeholder="https://canvas.yourschool.edu/feeds/calendars/…">
+                        <button class="integration-clear" id="disconnect-canvas" type="button" hidden>Disconnect
+                            Canvas</button>
+                    </div>
+                    <p class="phone-preview-import-link" id="phone-preview-import-link" hidden>This phone preview does
+                        not send private feed URLs over Wi-Fi. <a href="#schedule">Go to Schedule to import your
+                            downloaded .ics file →</a></p>
+                </article>
+                <article class="integration-guide">
+                    <div class="guide-heading"><span class="guide-icon gemini-icon">✳</span>
+                        <div>
+                            <h2>Gemini study assistant</h2>
+                            <p id="gemini-connection-status">Checking connection…</p>
+                        </div>
+                    </div>
+                    <ol>
+                        <li><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">Open
+                                Google AI Studio</a> and create an API key.</li>
+                        <li>Paste the key below. Your study questions and current task titles will be sent to Google for
+                            answers.</li>
+                        <li>Leave the model as <code>gemini-2.5-flash</code> unless you want to use another supported
+                            model.</li>
+                    </ol>
+                    <label class="integration-label" for="gemini-key-input">Gemini API key</label>
+                    <div class="secret-input-row"><input class="integration-input" id="gemini-key-input" type="password"
+                            autocomplete="new-password" placeholder="Paste API key; existing key is never shown"><button
+                            id="toggle-gemini-key" class="icon-button" type="button" aria-label="Show API key"
+                            title="Show API key">◉</button></div>
+                    <label class="integration-label model-label" for="gemini-model-input">Model</label>
+                    <input class="integration-input" id="gemini-model-input" value="gemini-2.5-flash" maxlength="80"
+                        autocomplete="off">
+                    <button class="integration-clear" id="disconnect-gemini" type="button" hidden>Remove Gemini
+                        key</button>
+                </article>
+            </div>
+            <div class="integration-footer">
+                <p id="integration-feedback" role="status" aria-live="polite">Existing secrets are never sent back to
+                    this page.</p><button class="primary-button" id="save-integrations" type="button">Save
+                    connections</button>
+            </div>
+        </section>
+    </div>
+
+    <div class="modal-backdrop" id="onboarding" role="dialog" aria-modal="true" aria-labelledby="onboarding-title"
+        hidden>
+        <div class="onboarding-panel">
+            <div class="onboarding-brand"><span class="brand-mark">d.</span><span>daymark</span><span class="step-count"
+                    id="step-count">01 / 02</span></div>
+            <div class="onboarding-progress"><span id="onboarding-progress"></span></div>
+            <form id="onboarding-form">
+                <section class="onboarding-step" data-step="1">
+                    <p class="eyebrow">FIRST, A LITTLE ABOUT YOU</p>
+                    <h1 id="onboarding-title">What makes you<br>curious?</h1>
+                    <p class="onboarding-intro">We'll bring the work you care about to the top of your day.</p>
+                    <label class="field-label" for="name-input">What should we call you?</label><input
+                        class="text-input" id="name-input" maxlength="24" placeholder="Your name"
+                        autocomplete="given-name">
+                    <fieldset class="choice-group">
+                        <legend class="field-label">What do you love exploring?</legend>
+                        <div class="chip-grid" id="interest-options"><label class="choice-chip"><input type="checkbox"
+                                    value="Creativity"><span>✳ Creativity</span></label><label
+                                class="choice-chip"><input type="checkbox" value="Technology"><span>⌘
+                                    Technology</span></label><label class="choice-chip"><input type="checkbox"
+                                    value="People & culture"><span>◉ People & culture</span></label><label
+                                class="choice-chip"><input type="checkbox" value="Nature"><span>❋
+                                    Nature</span></label><label class="choice-chip"><input type="checkbox"
+                                    value="Business"><span>↗ Business</span></label><label class="choice-chip"><input
+                                    type="checkbox" value="Making things"><span>✂ Making things</span></label></div>
+                    </fieldset>
+                    <label class="field-label" for="subjects-input">Favorite subjects <span
+                            class="optional-label">(optional)</span></label><input class="text-input"
+                        id="subjects-input" placeholder="e.g. Biology, design, history">
+                    <button class="onboarding-next" type="button" id="to-mode">Choose your pace <span>→</span></button>
+                </section>
+                <section class="onboarding-step" data-step="2" hidden>
+                    <p class="eyebrow">YOUR SPACE, YOUR RULES</p>
+                    <h1>How do you want<br>to show up?</h1>
+                    <p class="onboarding-intro">You can change this any time. Start where you are.</p>
+                    <div class="mode-choices"><label class="mode-choice"><input type="radio" name="mode" value="locked"
+                                checked><span class="mode-choice-top"><span class="mode-symbol">▣</span><span
+                                    class="mode-select">○</span></span><strong>Locked In</strong><small>Focus sessions,
+                                gentle app limits, and rewards for showing up.</small><span class="mode-detail">Requires
+                                device-level permissions for real app blocking.</span></label><label
+                            class="mode-choice"><input type="radio" name="mode" value="casual"><span
+                                class="mode-choice-top"><span class="mode-symbol casual-symbol">◷</span><span
+                                    class="mode-select">○</span></span><strong>Casual</strong><small>A calm plan and
+                                focus timer, with no app limits.</small><span class="mode-detail">Rewards are available
+                                in Locked In mode.</span></label></div>
+                    <div class="permission-note"><span>ⓘ</span>
+                        <p>Real blocking needs a supported mobile app and your permission. This browser preview cannot
+                            block other apps.</p>
+                    </div>
+                    <button class="onboarding-next" type="submit" id="finish-onboarding">Make my plan
+                        <span>→</span></button><button class="back-button" type="button" id="back-survey">← Back to your
+                        interests</button>
+                </section>
+            </form>
+            <p class="onboarding-privacy">Your preferences stay in this browser.</p>
+        </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
+
 </html>
