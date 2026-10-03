@@ -121,7 +121,8 @@
                             <h2>Assignments & due dates</h2>
                         </div>
                         <div class="schedule-actions"><button class="text-button" id="import-canvas-file-button"
-                                type="button">↑ Import Canvas .ics</button><button class="text-button"
+                                type="button">↑ Import .ics file</button><button class="text-button" id="paste-canvas-button"
+                                type="button">📋 Paste .ics / link</button><button class="text-button"
                                 id="calendar-connect">↻ Sync Canvas</button><input id="canvas-ics-file" type="file"
                                 accept=".ics,text/calendar,application/ics" hidden></div>
                     </div>
@@ -426,6 +427,25 @@
                 <p id="integration-feedback" role="status" aria-live="polite">Existing secrets are never sent back to
                     this page.</p><button class="primary-button" id="save-integrations" type="button">Save
                     connections</button>
+            </div>
+        </section>
+    </div>
+
+    <div class="modal-backdrop" id="paste-modal" role="dialog" aria-modal="true" aria-labelledby="paste-modal-title" hidden>
+        <section class="integration-panel" style="width: min(100%, 420px);">
+            <header class="integration-header">
+                <div>
+                    <p class="eyebrow">CANVAS IMPORT</p>
+                    <h2 id="paste-modal-title" style="margin: 0; font-family: Manrope, sans-serif; font-size: 19px;">Paste Canvas calendar</h2>
+                </div>
+                <button class="icon-button" id="close-paste-modal" type="button" aria-label="Close" title="Close">×</button>
+            </header>
+            <p class="integration-intro">Paste your Canvas Calendar Feed URL (<code>https://...</code>) or paste the raw <code>.ics</code> calendar file text:</p>
+            <textarea id="paste-calendar-input" class="integration-input" style="height: 120px; padding: 10px; font-family: Consolas, monospace; font-size: 10px; line-height: 1.4; resize: vertical;" placeholder="Paste https://canvas.../calendar.ics OR paste text starting with BEGIN:VCALENDAR..."></textarea>
+            <p class="prototype-note" id="paste-feedback" style="margin-top: 8px; color: var(--orange-dark); font-weight: 600;"></p>
+            <div style="display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; align-items: center;">
+                <button class="outline-button" id="paste-clipboard-button" type="button" style="width: auto; padding: 0 10px;">📋 Paste clipboard</button>
+                <button class="primary-button" id="paste-submit-button" type="button" style="padding: 0 14px;">Import assignments</button>
             </div>
         </section>
     </div>

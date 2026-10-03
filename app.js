@@ -997,8 +997,9 @@ async function updateIntegrations(payload) {
 function parseCanvasIcs(text) {
     const unfolded = text.replace(/\r?\n[ \t]/g, '');
     const lines = unfolded.split(/\r?\n/);
-    const assignmentTerms = /assignment|homework|quiz|exam|test|project|paper|due|discussion|lab|midterm|final/i;
+    const assignmentTerms = /assignment|homework|quiz|exam|test|project|paper|due|discussion|lab|midterm|final|problem|set|reading|milestone|presentation|submission|deliverable|draft|review|case study|module/i;
     const events = [];
+    const allEvents = [];
     let current = null;
     for (const line of lines) {
         if (line === 'BEGIN:VEVENT') {
@@ -1006,13 +1007,15 @@ function parseCanvasIcs(text) {
             continue;
         }
         if (line === 'END:VEVENT') {
-            if (current) {
+            if (current && current.start) {
                 const summary = current.summary || 'Canvas assignment';
-                if (current.start && assignmentTerms.test(summary)) {
-                    const due = `${current.start.slice(0, 4)}-${current.start.slice(4, 6)}-${current.start.slice(6, 8)}`;
-                    if (/^\d{4}-\d{2}-\d{2}$/.test(due) && dayDifference(due) >= -7) {
-                        const title = summary.replace(/^(assignment|quiz|event|calendar event)\s*:\s*/i, '').trim();
-                        events.push({ uid: current.uid || `${summary}-${due}`, title: title || summary, due });
+                const due = `${current.start.slice(0, 4)}-${current.start.slice(4, 6)}-${current.start.slice(6, 8)}`;
+                if (/^\d{4}-\d{2}-\d{2}$/.test(due) && dayDifference(due) >= -14) {
+                    const title = summary.replace(/^(assignment|quiz|event|calendar event)\s*:\s*/i, '').trim();
+                    const item = { uid: current.uid || `${summary}-${due}`, title: title || summary, due };
+                    allEvents.push(item);
+                    if (assignmentTerms.test(summary)) {
+                        events.push(item);
                     }
                 }
             }
@@ -1029,7 +1032,8 @@ function parseCanvasIcs(text) {
         else if (property === 'UID') current.uid = decoded;
         else if (property === 'DTSTART') current.start = value.replace(/[^0-9T]/g, '').slice(0, 8);
     }
-    return events.sort((first, second) => first.due.localeCompare(second.due));
+    const result = events.length > 0 ? events : allEvents;
+    return result.sort((first, second) => first.due.localeCompare(second.due));
 }
 
 function importCanvasEvents(events, note = $('#calendar-note')) {
@@ -1155,15 +1159,127 @@ $('#toggle-gemini-key').addEventListener('click', () => {
 });
 $('#save-integrations').addEventListener('click', () => {
     const payload = { gemini_model: $('#gemini-model-input').value.trim() };
-    const canvasUrl = $('#canvas-feed-input').value.trim();
+    let canvasUrl = $('#canvas-feed-input').value.trim();
     const apiKey = $('#gemini-key-input').value.trim();
-    if (canvasUrl) payload.canvas_ics_url = canvasUrl;
+
+    if (canvasUrl && (canvasUrl.includes('BEGIN:VCALENDAR') || canvasUrl.includes('BEGIN:VEVENT'))) {
+        const events = parseCanvasIcs(canvasUrl);
+        if (events.length > 0) {
+            importCanvasEvents(events);
+            $('#integration-feedback').textContent = `Success! Imported ${events.length} assignments directly from your pasted .ics calendar.`;
+            $('#canvas-feed-input').value = '';
+            showToast(`Imported ${events.length} assignments from Canvas calendar.`);
+            return;
+        } else {
+            $('#integration-feedback').textContent = 'No upcoming assignments found in the pasted .ics text.';
+            return;
+        }
+    }
+
+    if (canvasUrl) {
+        canvasUrl = canvasUrl.replace(/^webcal:\/\//i, 'https://');
+        payload.canvas_ics_url = canvasUrl;
+    }
     if (apiKey) payload.gemini_api_key = apiKey;
+
     updateIntegrations(payload).then((saved) => {
         if (!saved) return;
         $('#canvas-feed-input').value = '';
         $('#gemini-key-input').value = '';
+        if (canvasUrl) {
+            syncCanvasAssignments();
+        }
     });
+});
+
+function openPasteModal() {
+    $('#paste-modal').hidden = false;
+    $('#paste-feedback').textContent = '';
+    $('#paste-calendar-input').value = '';
+    $('#paste-calendar-input').focus();
+}
+
+function closePasteModal() {
+    $('#paste-modal').hidden = true;
+    $('#paste-feedback').textContent = '';
+}
+
+async function handlePasteImport() {
+    const raw = $('#paste-calendar-input').value.trim();
+    const feedback = $('#paste-feedback');
+    if (!raw) {
+        feedback.textContent = 'Please paste a Canvas URL or .ics calendar text above.';
+        return;
+    }
+
+    if (raw.includes('BEGIN:VCALENDAR') || raw.includes('BEGIN:VEVENT')) {
+        const events = parseCanvasIcs(raw);
+        if (events.length > 0) {
+            importCanvasEvents(events);
+            closePasteModal();
+            showToast(`Imported ${events.length} assignments from Canvas!`);
+        } else {
+            feedback.textContent = 'No upcoming assignments found in that calendar text.';
+        }
+        return;
+    }
+
+    let url = raw.replace(/^webcal:\/\//i, 'https://');
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        feedback.textContent = 'Please enter a valid https:// URL or paste .ics calendar text.';
+        return;
+    }
+
+    feedback.textContent = 'Fetching Canvas calendar…';
+    try {
+        const result = await apiRequest('/api/canvas/fetch-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        }).catch(() => null);
+
+        if (result && result.events && result.events.length > 0) {
+            importCanvasEvents(result.events);
+            closePasteModal();
+            showToast(`Imported ${result.events.length} assignments from Canvas!`);
+            return;
+        }
+
+        const response = await fetch(url).catch(() => null);
+        if (response && response.ok) {
+            const text = await response.text();
+            const events = parseCanvasIcs(text);
+            if (events.length > 0) {
+                importCanvasEvents(events);
+                closePasteModal();
+                showToast(`Imported ${events.length} assignments from Canvas!`);
+                return;
+            }
+        }
+
+        feedback.textContent = 'Canvas blocked direct browser download due to CORS. Download the .ics file in your browser, then tap "Import .ics file" to pick it, or open it and paste the text above!';
+    } catch (err) {
+        feedback.textContent = err.message || 'Import failed. Check the URL and try again.';
+    }
+}
+
+$('#paste-canvas-button')?.addEventListener('click', openPasteModal);
+$('#close-paste-modal')?.addEventListener('click', closePasteModal);
+$('#paste-submit-button')?.addEventListener('click', handlePasteImport);
+$('#paste-clipboard-button')?.addEventListener('click', async () => {
+    try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            const clip = await navigator.clipboard.readText();
+            if (clip) {
+                $('#paste-calendar-input').value = clip;
+                $('#paste-feedback').textContent = 'Pasted from clipboard! Tap "Import assignments" to finish.';
+            }
+        } else {
+            $('#paste-calendar-input').focus();
+        }
+    } catch {
+        $('#paste-calendar-input').focus();
+    }
 });
 $('#disconnect-canvas').addEventListener('click', () => updateIntegrations({ clear_canvas: true }));
 $('#disconnect-gemini').addEventListener('click', () => updateIntegrations({ clear_gemini: true }));

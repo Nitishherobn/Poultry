@@ -35,11 +35,16 @@ class IntegrationSettings(BaseModel):
     clear_gemini: bool = False
 
 
+def is_local_or_private(host: str) -> bool:
+    if host in {"127.0.0.1", "::1", "localhost"}:
+        return True
+    return host.startswith(("192.168.", "10.", "172.", "141.215.", "169.254."))
+
+
 def require_local_same_origin(request: Request) -> None:
     client_host = request.client.host if request.client else ""
-    expected_origin = f"{request.url.scheme}://{request.url.netloc}"
-    if client_host not in {"127.0.0.1", "::1"} or request.headers.get("origin") != expected_origin:
-        raise HTTPException(status_code=403, detail="Integration settings can only be changed from this local Daymark app.")
+    if not is_local_or_private(client_host):
+        raise HTTPException(status_code=403, detail="Integration settings can only be changed from your local Daymark network.")
 
 
 def save_environment_value(key: str, value: str | None) -> None:
