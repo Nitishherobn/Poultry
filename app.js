@@ -77,7 +77,8 @@ function makeStarterTasks() {
 
 function initialState() {
     return {
-        onboarded: true,
+        onboarded: false,
+        surveyVersion: 'v2',
         name: 'Sam',
         studyLevel: 'Undergraduate',
         degree: 'undergrad',
@@ -123,10 +124,14 @@ function loadState() {
             saved.studyLevel.toLowerCase().includes('company') || saved.studyLevel.toLowerCase().includes('work') ? 'company' : 'undergrad'
         ) : 'undergrad');
         const loadedInstitution = saved.institution || (saved.studyLevel && saved.studyLevel.includes('·') ? saved.studyLevel.split('·')[1].trim() : 'University of Michigan: Dearborn');
+        const needsSurveyReset = saved.surveyVersion !== 'v2';
+        const onboarded = needsSurveyReset ? false : Boolean(saved.onboarded);
 
         return {
             ...base,
             ...saved,
+            surveyVersion: 'v2',
+            onboarded,
             degree: loadedDegree,
             institution: loadedInstitution,
             studyLevel: saved.studyLevel || (loadedDegree === 'school' ? 'School' : loadedDegree === 'post grad' ? 'Post grad' : loadedDegree === 'company' ? 'Company' : 'Undergrad'),
@@ -1730,7 +1735,13 @@ document.querySelectorAll('.nav-link').forEach((link) => {
         setActiveView(view);
     });
 });
-window.addEventListener('hashchange', () => setActiveView(viewFromHash()));
+window.addEventListener('hashchange', () => {
+    if (window.location.hash === '#survey' || window.location.hash === '#onboarding') {
+        openOnboarding(1);
+        return;
+    }
+    setActiveView(viewFromHash());
+});
 
 document.addEventListener('click', (event) => {
     const link = event.target.closest('a[href^="#"]');
@@ -1785,6 +1796,16 @@ $('#profile-institution')?.addEventListener('input', () => {
     renderLeaderboard();
 });
 
+function resetSurvey() {
+    state.onboarded = false;
+    saveState();
+    openOnboarding(1);
+    showToast('Onboarding survey reset.');
+}
+window.resetSurvey = resetSurvey;
+
+$('#reset-survey-btn')?.addEventListener('click', resetSurvey);
+
 function initialize() {
     closeObservedAwayPeriod();
     renderAll();
@@ -1816,6 +1837,11 @@ function initialize() {
         }, state.unlockedUntil - Date.now());
     }
     setActiveView(viewFromHash());
+
+    if (!state.onboarded || window.location.hash === '#survey' || window.location.hash === '#onboarding') {
+        openOnboarding(1);
+    }
+
     const observationDelay = Math.max(0, observationDeadline() - Date.now());
     setTimeout(() => {
         finishObservationIfReady();
