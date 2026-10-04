@@ -1,6 +1,6 @@
 # Poultry
 
-Daymark is a study planner with a Python local API for Canvas calendar imports and Gemini study responses. Start the server and open the localhost URL; preferences and tasks are saved in that browser's local storage.
+Poultry is a study planner with a Python local API for Canvas calendar imports and Gemini study responses. Start the server and open the localhost URL; preferences and tasks are saved in that browser's local storage.
 
 ## Run locally
 
@@ -16,7 +16,7 @@ For a same-Wi-Fi showcase, run `py phone_preview.py` on the computer and open `h
 
 This preview server serves only the frontend files and does not expose `.env`, the Gemini backend, or Canvas data. Gemini and Canvas are intentionally unavailable in this read-only showcase. Android Chrome can use **Add to Home screen**; on iPhone, open the page in Safari and use **Share > Add to Home Screen**. This creates a shortcut, not a native/offline app package. User data is stored locally in the phone's browser.
 
-To import Canvas assignments in the phone preview, open the Canvas Calendar Feed link on your phone and save/download its `.ics` calendar file. In Daymark, go to **Schedule > Import Canvas .ics** and select that file from Files or Downloads. The preview parses it on-device and stores imported assignments in local browser storage; it never uploads the private feed URL.
+To import Canvas assignments in the phone preview, open the Canvas Calendar Feed link on your phone and save/download its `.ics` calendar file. In Poultry, go to **Schedule > Import Canvas .ics** and select that file from Files or Downloads. The preview parses it on-device and stores imported assignments in local browser storage; it never uploads the private feed URL.
 
 ## Connect integrations
 
