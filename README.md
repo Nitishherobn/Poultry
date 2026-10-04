@@ -1,4 +1,4 @@
-# Daymark
+# Poultry
 
 Daymark is a study planner with a Python local API for Canvas calendar imports and Gemini study responses. Start the server and open the localhost URL; preferences and tasks are saved in that browser's local storage.
 
