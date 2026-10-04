@@ -80,6 +80,8 @@ function initialState() {
         onboarded: true,
         name: 'Sam',
         studyLevel: 'Undergraduate',
+        degree: 'undergrad',
+        institution: 'University of Michigan: Dearborn',
         interests: [],
         subjects: [],
         profilePrivacy: makeProfilePrivacy(),
@@ -115,9 +117,19 @@ function loadState() {
                 ...task,
                 priority: getTaskPriority(task)
             }));
+        const loadedDegree = saved.degree || (saved.studyLevel ? (
+            saved.studyLevel.toLowerCase().includes('high') || saved.studyLevel.toLowerCase().includes('middle') || saved.studyLevel.toLowerCase().includes('school') ? 'school' :
+            saved.studyLevel.toLowerCase().includes('grad') || saved.studyLevel.toLowerCase().includes('post') ? 'post grad' :
+            saved.studyLevel.toLowerCase().includes('company') || saved.studyLevel.toLowerCase().includes('work') ? 'company' : 'undergrad'
+        ) : 'undergrad');
+        const loadedInstitution = saved.institution || (saved.studyLevel && saved.studyLevel.includes('·') ? saved.studyLevel.split('·')[1].trim() : 'University of Michigan: Dearborn');
+
         return {
             ...base,
             ...saved,
+            degree: loadedDegree,
+            institution: loadedInstitution,
+            studyLevel: saved.studyLevel || (loadedDegree === 'school' ? 'School' : loadedDegree === 'post grad' ? 'Post grad' : loadedDegree === 'company' ? 'Company' : 'Undergrad'),
             tasks,
             interests: Array.isArray(saved.interests) ? saved.interests : [],
             subjects: Array.isArray(saved.subjects) ? saved.subjects : [],
@@ -722,9 +734,13 @@ function makeMetric(label, value, className = '') {
 
 function profileForId(id) {
     if (!id || id === 'me') {
+        const degreeDisplay = state.degree === 'school' ? 'School' :
+            state.degree === 'post grad' ? 'Post grad' :
+            state.degree === 'company' ? 'Company' : 'Undergrad';
+        const displayLevel = state.institution ? `${degreeDisplay} · ${state.institution}` : (state.studyLevel || degreeDisplay);
         return {
             id: 'me', name: state.name || 'Student', focus: state.attention,
-            level: state.studyLevel || 'Undergraduate', subjects: [...state.interests, ...state.subjects],
+            level: displayLevel, subjects: [...state.interests, ...state.subjects],
             hours: lockedInHours('all'), privacy: state.profilePrivacy, isSelf: true
         };
     }
@@ -773,7 +789,10 @@ function renderMemberProfile(id) {
         for (const field of ['discoverable', 'focus', 'level', 'hours', 'interests']) {
             $(`#privacy-${field}`).checked = Boolean(state.profilePrivacy[field]);
         }
-        $('#profile-study-level').value = state.studyLevel || 'Undergraduate';
+        const profileLevel = $('#profile-study-level');
+        if (profileLevel) profileLevel.value = state.degree || 'undergrad';
+        const profileInst = $('#profile-institution');
+        if (profileInst) profileInst.value = state.institution || '';
     }
 }
 
@@ -993,10 +1012,61 @@ function renderAll() {
     renderAttention();
 }
 
+function populateCollegeDatalist() {
+    const datalist = $('#college-options-list');
+    if (!datalist || datalist.children.length > 0) return;
+    const colleges = (typeof COLLEGES_DATABASE !== 'undefined' ? COLLEGES_DATABASE : (window.COLLEGES_DATABASE || []));
+    if (!colleges || colleges.length === 0) return;
+    const fragment = document.createDocumentFragment();
+    for (const college of colleges) {
+        const opt = document.createElement('option');
+        opt.value = college;
+        fragment.append(opt);
+    }
+    datalist.append(fragment);
+}
+
+function updateDegreeFields(degree) {
+    const isCollege = degree === 'undergrad' || degree === 'post grad';
+    const collegeBlock = $('#college-select-block');
+    const manualBlock = $('#manual-institution-block');
+    const manualLabel = $('#manual-institution-label');
+    const manualInput = $('#manual-institution-input');
+
+    if (collegeBlock) collegeBlock.hidden = !isCollege;
+    if (manualBlock) manualBlock.hidden = isCollege;
+
+    if (isCollege) {
+        populateCollegeDatalist();
+    } else {
+        if (degree === 'school') {
+            if (manualLabel) manualLabel.textContent = 'School name';
+            if (manualInput) manualInput.placeholder = 'Type your school name (e.g. Dearborn High School)';
+        } else if (degree === 'company') {
+            if (manualLabel) manualLabel.textContent = 'Company or organization';
+            if (manualInput) manualInput.placeholder = 'Type your company name (e.g. Ford Motor Company, Google)';
+        }
+    }
+}
+
 function openOnboarding(step = 1) {
     onboardingStep = step;
     $('#onboarding').hidden = false;
     $('#name-input').value = state.name === 'Sam' && !state.onboarded ? '' : state.name;
+
+    const currentDegree = state.degree || 'undergrad';
+    const degreeRadio = document.querySelector(`input[name="degree-choice"][value="${currentDegree}"]`);
+    if (degreeRadio) degreeRadio.checked = true;
+    updateDegreeFields(currentDegree);
+
+    if (currentDegree === 'undergrad' || currentDegree === 'post grad') {
+        const collegeInput = $('#college-input');
+        if (collegeInput) collegeInput.value = state.institution || '';
+    } else {
+        const manualInput = $('#manual-institution-input');
+        if (manualInput) manualInput.value = state.institution || '';
+    }
+
     $('#subjects-input').value = state.subjects.join(', ');
     document.querySelectorAll('#interest-options input').forEach((input) => {
         input.checked = state.interests.includes(input.value);
@@ -1338,23 +1408,54 @@ async function importCanvasFile(file) {
     }
 }
 
-$('#to-mode').addEventListener('click', () => showOnboardingStep(2));
+function saveSurveyStep1() {
+    state.name = $('#name-input').value.trim() || 'Student';
+    const chosenDegree = document.querySelector('input[name="degree-choice"]:checked')?.value || 'undergrad';
+    state.degree = chosenDegree;
+
+    if (chosenDegree === 'undergrad' || chosenDegree === 'post grad') {
+        const college = $('#college-input')?.value.trim() || 'University of Michigan: Dearborn';
+        state.institution = college;
+        state.studyLevel = chosenDegree === 'post grad' ? 'Post grad' : 'Undergrad';
+    } else if (chosenDegree === 'school') {
+        const school = $('#manual-institution-input')?.value.trim() || 'School';
+        state.institution = school;
+        state.studyLevel = 'School';
+    } else {
+        const company = $('#manual-institution-input')?.value.trim() || 'Company';
+        state.institution = company;
+        state.studyLevel = 'Company';
+    }
+
+    state.interests = [...document.querySelectorAll('#interest-options input:checked')].map((input) => input.value);
+    state.subjects = $('#subjects-input').value.split(',').map((subject) => subject.trim()).filter(Boolean);
+}
+
+$('#to-mode').addEventListener('click', () => {
+    saveSurveyStep1();
+    showOnboardingStep(2);
+});
 $('#back-survey').addEventListener('click', () => showOnboardingStep(1));
 $('#onboarding-form').addEventListener('submit', (event) => {
     event.preventDefault();
     if (onboardingStep === 1) {
+        saveSurveyStep1();
         showOnboardingStep(2);
         return;
     }
-    state.name = $('#name-input').value.trim() || 'Student';
-    state.interests = [...document.querySelectorAll('#interest-options input:checked')].map((input) => input.value);
-    state.subjects = $('#subjects-input').value.split(',').map((subject) => subject.trim()).filter(Boolean);
-    state.mode = document.querySelector('input[name="mode"]:checked').value === 'locked' ? 'locked' : 'casual';
+    saveSurveyStep1();
+    state.mode = document.querySelector('input[name="mode"]:checked')?.value === 'locked' ? 'locked' : 'casual';
     state.onboarded = true;
     saveState();
     $('#onboarding').hidden = true;
     renderAll();
     showToast(state.mode === 'locked' ? 'Your plan is ready. Locked In rewards are on.' : 'Your plan is ready. Take it one step at a time.');
+});
+
+document.querySelectorAll('input[name="degree-choice"]').forEach((radio) => {
+    radio.addEventListener('change', (e) => {
+        updateDegreeFields(e.target.value);
+    });
 });
 $('#close-onboarding')?.addEventListener('click', () => {
     state.onboarded = true;
@@ -1668,8 +1769,17 @@ document.querySelectorAll('[id^="privacy-"]').forEach((input) => {
         renderLeaderboard();
     });
 });
-$('#profile-study-level').addEventListener('change', () => {
-    state.studyLevel = $('#profile-study-level').value;
+$('#profile-study-level')?.addEventListener('change', () => {
+    state.degree = $('#profile-study-level').value;
+    state.studyLevel = state.degree === 'school' ? 'School' :
+        state.degree === 'post grad' ? 'Post grad' :
+        state.degree === 'company' ? 'Company' : 'Undergrad';
+    saveState();
+    renderSelectedProfile();
+    renderLeaderboard();
+});
+$('#profile-institution')?.addEventListener('input', () => {
+    state.institution = $('#profile-institution').value.trim();
     saveState();
     renderSelectedProfile();
     renderLeaderboard();

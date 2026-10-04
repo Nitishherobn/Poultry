@@ -23,6 +23,8 @@ ASSETS = {
     "/app.css": "app.css",
     "/app-details.css": "app-details.css",
     "/app.js": "app.js",
+    "/colleges.js": "colleges.js",
+    "/colleges.json": "colleges.json",
 }
 
 

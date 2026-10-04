@@ -220,6 +220,6 @@ def index():
 
 @app.get("/{asset_name}")
 def frontend_asset(asset_name: str):
-    if asset_name not in {"app.css", "app-details.css", "app.js"}:
+    if asset_name not in {"app.css", "app-details.css", "app.js", "colleges.js", "colleges.json"}:
         raise HTTPException(status_code=404, detail="Not found")
     return FileResponse(BASE_DIR / asset_name)

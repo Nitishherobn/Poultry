@@ -6,9 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#ffffff">
     <title>Daymark — make room for focus</title>
-    <link rel="stylesheet" href="app.css?v=v9">
-    <link rel="stylesheet" href="app-details.css?v=v9">
-    <script src="app.js?v=v9" defer></script>
+    <link rel="stylesheet" href="app.css?v=v10">
+    <link rel="stylesheet" href="app-details.css?v=v10">
+    <script src="colleges.js?v=v10" defer></script>
+    <script src="app.js?v=v10" defer></script>
 </head>
 
 <body>
@@ -306,15 +307,15 @@
                     <label class="privacy-row"><span><strong>Interests & subjects</strong><small>Share your selected
                                 topics and subjects.</small></span><input id="privacy-interests"
                             type="checkbox"></label>
-                    <label class="integration-label profile-level-label" for="profile-study-level">Study level</label>
+                    <label class="integration-label profile-level-label" for="profile-study-level">Degree / Status</label>
                     <select class="integration-input profile-level-select" id="profile-study-level">
-                        <option>Middle school</option>
-                        <option>High school</option>
-                        <option>Undergraduate</option>
-                        <option>Graduate student</option>
-                        <option>Postgraduate</option>
-                        <option>Independent learner</option>
+                        <option value="school">School</option>
+                        <option value="undergrad">Undergrad</option>
+                        <option value="post grad">Post grad</option>
+                        <option value="company">Company</option>
                     </select>
+                    <label class="integration-label" for="profile-institution" style="margin-top: 8px;">Institution / Organization</label>
+                    <input class="integration-input" id="profile-institution" placeholder="School, college, or company">
                 </section>
             </section>
             <section class="app-view" id="rewards-view" data-view="rewards" hidden>
@@ -478,6 +479,47 @@
                     <label class="field-label" for="name-input">What should we call you?</label><input
                         class="text-input" id="name-input" maxlength="24" placeholder="Your name"
                         autocomplete="given-name">
+
+                    <fieldset class="choice-group" style="margin-top: 10px;">
+                        <legend class="field-label">Current degree or status</legend>
+                        <div class="degree-choice-grid" id="degree-options">
+                            <label class="choice-chip degree-chip">
+                                <input type="radio" name="degree-choice" value="school">
+                                <span>🏫 School</span>
+                            </label>
+                            <label class="choice-chip degree-chip">
+                                <input type="radio" name="degree-choice" value="undergrad" checked>
+                                <span>🎓 Undergrad</span>
+                            </label>
+                            <label class="choice-chip degree-chip">
+                                <input type="radio" name="degree-choice" value="post grad">
+                                <span>📚 Post grad</span>
+                            </label>
+                            <label class="choice-chip degree-chip">
+                                <input type="radio" name="degree-choice" value="company">
+                                <span>💼 Company</span>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <div id="institution-selection-container" style="margin-top: 10px;">
+                        <div id="college-select-block" class="institution-select-block">
+                            <label class="field-label" for="college-input">College or university</label>
+                            <input class="text-input" id="college-input" list="college-options-list" placeholder="Search BigFuture colleges (e.g. University of Michigan...)" autocomplete="off">
+                            <datalist id="college-options-list"></datalist>
+                            <p class="prototype-note" style="margin: 4px 0 0; color: #8c827a; font-size: 8px;">
+                                🏛️ BigFuture CollegeBoard directory · Search 4,200+ colleges & universities
+                            </p>
+                        </div>
+                        <div id="manual-institution-block" class="manual-institution-block" hidden>
+                            <label class="field-label" id="manual-institution-label" for="manual-institution-input">School name</label>
+                            <input class="text-input" id="manual-institution-input" placeholder="Type your school name" autocomplete="organization">
+                            <p class="prototype-note" style="margin: 4px 0 0; color: #8c827a; font-size: 8px;">
+                                ✍️ Manually enter your school or company name
+                            </p>
+                        </div>
+                    </div>
+
                     <fieldset class="choice-group">
                         <legend class="field-label">What do you love exploring?</legend>
                         <div class="chip-grid" id="interest-options"><label class="choice-chip"><input type="checkbox"

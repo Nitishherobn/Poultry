@@ -219,3 +219,11 @@
 .schedule-group-title{display:flex;align-items:center;gap:6px;font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#57504a}
 .schedule-group-count{padding:1px 6px;border-radius:10px;background:#f3eee8;color:#78716c;font-size:8px;font-weight:700}
 .queue-summary-pill{display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:#fffaf5;border:1px solid #fed7aa;border-radius:6px;font-size:9px;color:var(--orange-dark);margin:10px 0 8px;font-weight:600}
+
+/* Degree & Institution Survey styles */
+.degree-choice-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px}
+@media(min-width:480px){.degree-choice-grid{grid-template-columns:repeat(4,1fr)}}
+.degree-chip{position:relative;cursor:pointer}
+.degree-chip span{display:flex;align-items:center;justify-content:center;text-align:center;padding:8px 6px;border:1px solid #eae5df;border-radius:6px;background:#ffffff;color:#57504a;font-size:9.5px;font-weight:600;transition:all .15s;min-height:38px}
+.degree-chip input:checked+span{border-color:var(--orange);background:#fff4ed;color:var(--orange-dark);font-weight:700}
+.institution-select-block,.manual-institution-block{margin-top:10px}
